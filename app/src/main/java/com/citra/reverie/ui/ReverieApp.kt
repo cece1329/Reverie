@@ -77,7 +77,6 @@ fun ReverieApp(
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     ReverieTheme(darkTheme = isDarkMode) {
-        // Tampilkan layar Login/Daftar terlebih dahulu jika pengguna belum masuk
         if (!userProfile.isLoggedIn) {
             Scaffold { padding ->
                 Box(
@@ -99,86 +98,65 @@ fun ReverieApp(
                     )
                 }
             }
-            return@ReverieTheme
-        }
+        } else {
+            BackHandler(enabled = isNowPlayingExpanded) {
+                isNowPlayingExpanded = false
+            }
 
-        BackHandler(enabled = isNowPlayingExpanded) {
-            isNowPlayingExpanded = false
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
-            if (isLandscape) {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    ReverieNavRail(
-                        currentTab = currentTab,
-                        onTabSelected = { currentTab = it }
-                    )
-
-                    Box(modifier = Modifier.weight(1f)) {
-                        MainContentScreen(
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
+                if (isLandscape) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        ReverieNavRail(
                             currentTab = currentTab,
-                            currentTrack = currentTrack,
-                            isPlaying = isPlaying,
-                            likedTracks = likedTracks,
-                            history = history,
-                            customPlaylists = customPlaylists,
-                            userProfile = userProfile,
-                            isDarkMode = isDarkMode,
-                            onTrackSelect = { track, newQueue ->
-                                playerManager.playTrack(track, newQueue)
-                            },
-                            onLikeToggle = { playerManager.toggleLike(it) },
-                            onCreatePlaylist = { name, desc ->
-                                playerManager.createPlaylist(name, desc)
-                            },
-                            onDeletePlaylist = { playlistId ->
-                                playerManager.deletePlaylist(playlistId)
-                            },
-                            onAddTrackToPlaylist = { playlistId, track ->
-                                playerManager.addTrackToPlaylist(playlistId, track)
-                            },
-                            onAddCustomTrack = { t, a, c, s ->
-                                playerManager.addCustomTrack(t, a, c, s)
-                            },
-                            onAddLocalTrack = { t, a, c, u ->
-                                playerManager.addLocalAudioTrack(t, a, c, u)
-                            },
-                            onClearHistory = {
-                                playerManager.clearHistory()
-                            },
-                            onUpdateProfile = { u, e ->
-                                playerManager.updateUserProfile(u, e)
-                            },
-                            onLogin = { u, e -> playerManager.login(u, e) },
-                            onRegister = { u, e, _ -> playerManager.login(u, e) },
-                            onLogout = { playerManager.logout() },
-                            onToggleTheme = { isDarkMode = !isDarkMode },
-                            onToggleLanguage = { LanguageManager.toggleLanguage() }
+                            onTabSelected = { currentTab = it }
                         )
 
-                        if (currentTrack != null && !isNowPlayingExpanded) {
-                            MiniPlayer(
-                                track = currentTrack,
+                        Box(modifier = Modifier.weight(1f)) {
+                            MainContentScreen(
+                                currentTab = currentTab,
+                                currentTrack = currentTrack,
                                 isPlaying = isPlaying,
-                                progressMs = progressMs,
-                                durationMs = durationMs,
-                                isBuffering = isBuffering,
-                                onPlayPauseClick = { playerManager.togglePlayPause() },
-                                onNextClick = { playerManager.nextTrack() },
-                                onExpandClick = { isNowPlayingExpanded = true },
-                                modifier = Modifier.align(Alignment.BottomCenter)
+                                likedTracks = likedTracks,
+                                history = history,
+                                customPlaylists = customPlaylists,
+                                userProfile = userProfile,
+                                isDarkMode = isDarkMode,
+                                onTrackSelect = { track, newQueue ->
+                                    playerManager.playTrack(track, newQueue)
+                                },
+                                onLikeToggle = { playerManager.toggleLike(it) },
+                                onCreatePlaylist = { name, desc ->
+                                    playerManager.createPlaylist(name, desc)
+                                },
+                                onDeletePlaylist = { playlistId ->
+                                    playerManager.deletePlaylist(playlistId)
+                                },
+                                onAddTrackToPlaylist = { playlistId, track ->
+                                    playerManager.addTrackToPlaylist(playlistId, track)
+                                },
+                                onAddCustomTrack = { t, a, c, s ->
+                                    playerManager.addCustomTrack(t, a, c, s)
+                                },
+                                onAddLocalTrack = { t, a, c, u ->
+                                    playerManager.addLocalAudioTrack(t, a, c, u)
+                                },
+                                onClearHistory = {
+                                    playerManager.clearHistory()
+                                },
+                                onUpdateProfile = { u, e ->
+                                    playerManager.updateUserProfile(u, e)
+                                },
+                                onLogin = { u, e -> playerManager.login(u, e) },
+                                onRegister = { u, e, _ -> playerManager.login(u, e) },
+                                onLogout = { playerManager.logout() },
+                                onToggleTheme = { isDarkMode = !isDarkMode },
+                                onToggleLanguage = { LanguageManager.toggleLanguage() }
                             )
-                        }
-                    }
-                }
-            } else {
-                Scaffold(
-                    bottomBar = {
-                        Column {
+
                             if (currentTrack != null && !isNowPlayingExpanded) {
                                 MiniPlayer(
                                     track = currentTrack,
@@ -188,92 +166,112 @@ fun ReverieApp(
                                     isBuffering = isBuffering,
                                     onPlayPauseClick = { playerManager.togglePlayPause() },
                                     onNextClick = { playerManager.nextTrack() },
-                                    onExpandClick = { isNowPlayingExpanded = true }
+                                    onExpandClick = { isNowPlayingExpanded = true },
+                                    modifier = Modifier.align(Alignment.BottomCenter)
                                 )
                             }
-                            ReverieBottomBar(
+                        }
+                    }
+                } else {
+                    Scaffold(
+                        bottomBar = {
+                            Column {
+                                if (currentTrack != null && !isNowPlayingExpanded) {
+                                    MiniPlayer(
+                                        track = currentTrack,
+                                        isPlaying = isPlaying,
+                                        progressMs = progressMs,
+                                        durationMs = durationMs,
+                                        isBuffering = isBuffering,
+                                        onPlayPauseClick = { playerManager.togglePlayPause() },
+                                        onNextClick = { playerManager.nextTrack() },
+                                        onExpandClick = { isNowPlayingExpanded = true }
+                                    )
+                                }
+                                ReverieBottomBar(
+                                    currentTab = currentTab,
+                                    onTabSelected = { currentTab = it }
+                                )
+                            }
+                        }
+                    ) { paddingValues ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                        ) {
+                            MainContentScreen(
                                 currentTab = currentTab,
-                                onTabSelected = { currentTab = it }
+                                currentTrack = currentTrack,
+                                isPlaying = isPlaying,
+                                likedTracks = likedTracks,
+                                history = history,
+                                customPlaylists = customPlaylists,
+                                userProfile = userProfile,
+                                isDarkMode = isDarkMode,
+                                onTrackSelect = { track, newQueue ->
+                                    playerManager.playTrack(track, newQueue)
+                                },
+                                onLikeToggle = { playerManager.toggleLike(it) },
+                                onCreatePlaylist = { name, desc ->
+                                    playerManager.createPlaylist(name, desc)
+                                },
+                                onDeletePlaylist = { playlistId ->
+                                    playerManager.deletePlaylist(playlistId)
+                                },
+                                onAddTrackToPlaylist = { playlistId, track ->
+                                    playerManager.addTrackToPlaylist(playlistId, track)
+                                },
+                                onAddCustomTrack = { t, a, c, s ->
+                                    playerManager.addCustomTrack(t, a, c, s)
+                                },
+                                onAddLocalTrack = { t, a, c, u ->
+                                    playerManager.addLocalAudioTrack(t, a, c, u)
+                                },
+                                onClearHistory = {
+                                    playerManager.clearHistory()
+                                },
+                                onUpdateProfile = { u, e ->
+                                    playerManager.updateUserProfile(u, e)
+                                },
+                                onLogin = { u, e -> playerManager.login(u, e) },
+                                onRegister = { u, e, _ -> playerManager.login(u, e) },
+                                onLogout = { playerManager.logout() },
+                                onToggleTheme = { isDarkMode = !isDarkMode },
+                                onToggleLanguage = { LanguageManager.toggleLanguage() }
                             )
                         }
                     }
-                ) { paddingValues ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                    ) {
-                        MainContentScreen(
-                            currentTab = currentTab,
-                            currentTrack = currentTrack,
-                            isPlaying = isPlaying,
-                            likedTracks = likedTracks,
-                            history = history,
-                            customPlaylists = customPlaylists,
-                            userProfile = userProfile,
-                            isDarkMode = isDarkMode,
-                            onTrackSelect = { track, newQueue ->
-                                playerManager.playTrack(track, newQueue)
-                            },
-                            onLikeToggle = { playerManager.toggleLike(it) },
-                            onCreatePlaylist = { name, desc ->
-                                playerManager.createPlaylist(name, desc)
-                            },
-                            onDeletePlaylist = { playlistId ->
-                                playerManager.deletePlaylist(playlistId)
-                            },
-                            onAddTrackToPlaylist = { playlistId, track ->
-                                playerManager.addTrackToPlaylist(playlistId, track)
-                            },
-                            onAddCustomTrack = { t, a, c, s ->
-                                playerManager.addCustomTrack(t, a, c, s)
-                            },
-                            onAddLocalTrack = { t, a, c, u ->
-                                playerManager.addLocalAudioTrack(t, a, c, u)
-                            },
-                            onClearHistory = {
-                                playerManager.clearHistory()
-                            },
-                            onUpdateProfile = { u, e ->
-                                playerManager.updateUserProfile(u, e)
-                            },
-                            onLogin = { u, e -> playerManager.login(u, e) },
-                            onRegister = { u, e, _ -> playerManager.login(u, e) },
-                            onLogout = { playerManager.logout() },
-                            onToggleTheme = { isDarkMode = !isDarkMode },
-                            onToggleLanguage = { LanguageManager.toggleLanguage() }
-                        )
-                    }
                 }
-            }
 
-            AnimatedVisibility(
-                visible = isNowPlayingExpanded,
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
-            ) {
-                NowPlayingScreen(
-                    track = currentTrack,
-                    isPlaying = isPlaying,
-                    progressMs = progressMs,
-                    durationMs = durationMs,
-                    shuffleMode = shuffleMode,
-                    repeatMode = repeatMode,
-                    isLiked = currentTrack?.let { ct -> likedTracks.any { it.id == ct.id } } ?: false,
-                    queue = queue,
-                    isBuffering = isBuffering,
-                    onPlayPauseClick = { playerManager.togglePlayPause() },
-                    onNextClick = { playerManager.nextTrack() },
-                    onPreviousClick = { playerManager.previousTrack() },
-                    onSeekTo = { playerManager.seekTo(it) },
-                    onToggleShuffle = { playerManager.toggleShuffle() },
-                    onToggleRepeat = { playerManager.toggleRepeat() },
-                    onToggleLike = { currentTrack?.let { playerManager.toggleLike(it) } },
-                    onTrackSelect = { playerManager.playTrack(it, queue) },
-                    onCollapseClick = { isNowPlayingExpanded = false },
-                    onEnterPiP = onEnterPiP,
-                    isLandscape = isLandscape
-                )
+                AnimatedVisibility(
+                    visible = isNowPlayingExpanded,
+                    enter = slideInVertically(initialOffsetY = { it }),
+                    exit = slideOutVertically(targetOffsetY = { it })
+                ) {
+                    NowPlayingScreen(
+                        track = currentTrack,
+                        isPlaying = isPlaying,
+                        progressMs = progressMs,
+                        durationMs = durationMs,
+                        shuffleMode = shuffleMode,
+                        repeatMode = repeatMode,
+                        isLiked = currentTrack?.let { ct -> likedTracks.any { it.id == ct.id } } ?: false,
+                        queue = queue,
+                        isBuffering = isBuffering,
+                        onPlayPauseClick = { playerManager.togglePlayPause() },
+                        onNextClick = { playerManager.nextTrack() },
+                        onPreviousClick = { playerManager.previousTrack() },
+                        onSeekTo = { playerManager.seekTo(it) },
+                        onToggleShuffle = { playerManager.toggleShuffle() },
+                        onToggleRepeat = { playerManager.toggleRepeat() },
+                        onToggleLike = { currentTrack?.let { playerManager.toggleLike(it) } },
+                        onTrackSelect = { playerManager.playTrack(it, queue) },
+                        onCollapseClick = { isNowPlayingExpanded = false },
+                        onEnterPiP = onEnterPiP,
+                        isLandscape = isLandscape
+                    )
+                }
             }
         }
     }
