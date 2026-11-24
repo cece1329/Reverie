@@ -166,7 +166,7 @@ fun LibraryScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Lagu",
+                        text = AppStrings.get("btn_add_song_short"),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -188,7 +188,7 @@ fun LibraryScreen(
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Playlist",
+                        text = AppStrings.get("btn_add_playlist_short"),
                         fontSize = 11.sp,
                         color = Color.Black,
                         fontWeight = FontWeight.Bold
@@ -339,7 +339,7 @@ fun LibraryScreen(
                     EmptyStateView(
                         icon = Icons.Filled.MusicNote,
                         message = AppStrings.get("empty_my_songs"),
-                        actionButtonText = "+ Tambah Lagu Saya",
+                        actionButtonText = AppStrings.get("btn_add_music"),
                         onActionClick = { showAddTrackDialog = true }
                     )
                 }
@@ -398,13 +398,13 @@ fun LibraryScreen(
                         TextButton(onClick = onClearHistory) {
                             Icon(
                                 Icons.Filled.DeleteSweep,
-                                contentDescription = "Hapus Riwayat",
+                                contentDescription = AppStrings.get("clear_history"),
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "Hapus Riwayat",
+                                AppStrings.get("clear_history"),
                                 color = MaterialTheme.colorScheme.error,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold

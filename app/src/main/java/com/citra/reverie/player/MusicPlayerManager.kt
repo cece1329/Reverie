@@ -54,6 +54,13 @@ data class UserProfile(
     val isLoggedIn: Boolean = false
 )
 
+data class UserAccount(
+    val username: String,
+    val email: String,
+    val password: String = "",
+    val isPremium: Boolean = true
+)
+
 /**
  * MusicPlayerManager
  * Pemutar musik native Android menggunakan Media3 ExoPlayer & Audius REST API
@@ -151,10 +158,110 @@ class MusicPlayerManager(context: Context) {
         loadPopularAudiusMusic()
     }
 
+    private fun getUserKey(email: String = _userProfile.value.email): String {
+        val clean = email.trim().lowercase()
+        return if (clean.isNotBlank() && clean != "tamu") {
+            clean.replace(Regex("[^a-z0-9_]"), "_")
+        } else {
+            "default_user"
+        }
+    }
+
+    private fun getRegisteredAccounts(): MutableList<UserAccount> {
+        val json = prefs.getString("registered_accounts", null)
+        if (!json.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<MutableList<UserAccount>>() {}.type
+                val list: MutableList<UserAccount>? = gson.fromJson(json, type)
+                if (!list.isNullOrEmpty()) return list
+            } catch (_: Exception) {}
+        }
+        return mutableListOf(
+            UserAccount("Citra Maharani", "citra@reverie.app", "123456", true)
+        )
+    }
+
+    private fun saveRegisteredAccounts(accounts: List<UserAccount>) {
+        try {
+            val json = gson.toJson(accounts)
+            prefs.edit().putString("registered_accounts", json).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("MusicPlayerManager", "Error saving registered accounts: ${e.message}")
+        }
+    }
+
+    private fun loadUserData(email: String) {
+        val userKey = getUserKey(email)
+
+        // 1. Playlists
+        val playlistKey = "custom_playlists_$userKey"
+        var playlistsJson = prefs.getString(playlistKey, null)
+        if (playlistsJson.isNullOrBlank() && userKey.contains("citra")) {
+            playlistsJson = prefs.getString("custom_playlists", null)
+        }
+        val loadedPlaylists: List<Playlist> = if (!playlistsJson.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<Playlist>>() {}.type
+                gson.fromJson(playlistsJson, type) ?: emptyList()
+            } catch (_: Exception) { emptyList() }
+        } else {
+            emptyList()
+        }
+        _customPlaylists.value = loadedPlaylists
+
+        // 2. Liked Tracks
+        val likedKey = "liked_tracks_$userKey"
+        var likedJson = prefs.getString(likedKey, null)
+        if (likedJson.isNullOrBlank() && userKey.contains("citra")) {
+            likedJson = prefs.getString("liked_tracks", null)
+        }
+        val loadedLiked: List<Track> = if (!likedJson.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<Track>>() {}.type
+                gson.fromJson(likedJson, type) ?: emptyList()
+            } catch (_: Exception) { emptyList() }
+        } else {
+            emptyList()
+        }
+        _likedTracks.value = loadedLiked
+
+        // 3. Custom Tracks
+        val customKey = "custom_tracks_$userKey"
+        var customJson = prefs.getString(customKey, null)
+        if (customJson.isNullOrBlank() && userKey.contains("citra")) {
+            customJson = prefs.getString("custom_tracks", null)
+        }
+        val loadedCustom: List<Track> = if (!customJson.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<Track>>() {}.type
+                gson.fromJson(customJson, type) ?: emptyList()
+            } catch (_: Exception) { emptyList() }
+        } else {
+            emptyList()
+        }
+        _customTracks.value = loadedCustom
+
+        // 4. History
+        val historyKey = "history_$userKey"
+        val historyJson = prefs.getString(historyKey, null)
+        val loadedHistory: List<Track> = if (!historyJson.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<Track>>() {}.type
+                gson.fromJson(historyJson, type) ?: emptyList()
+            } catch (_: Exception) { emptyList() }
+        } else {
+            emptyList()
+        }
+        _history.value = loadedHistory
+    }
+
     private fun loadSavedState() {
         val isLoggedIn = prefs.getBoolean("is_logged_in", false)
-        val username = prefs.getString("username", "Citra Maharani") ?: "Citra Maharani"
         val email = prefs.getString("email", "citra@reverie.app") ?: "citra@reverie.app"
+        val accounts = getRegisteredAccounts()
+        val account = accounts.find { it.email.equals(email, ignoreCase = true) } ?: accounts.first()
+        val username = prefs.getString("username", account.username) ?: account.username
+
         _userProfile.value = UserProfile(
             username = username,
             email = email,
@@ -162,38 +269,7 @@ class MusicPlayerManager(context: Context) {
             isLoggedIn = isLoggedIn
         )
 
-        val savedPlaylistsJson = prefs.getString("custom_playlists", null)
-        if (!savedPlaylistsJson.isNullOrBlank()) {
-            try {
-                val type = object : TypeToken<List<Playlist>>() {}.type
-                val list: List<Playlist>? = gson.fromJson(savedPlaylistsJson, type)
-                if (list != null) _customPlaylists.value = list
-            } catch (e: Exception) {
-                android.util.Log.e("MusicPlayerManager", "Error loading saved playlists: ${e.message}")
-            }
-        }
-
-        val savedLikedJson = prefs.getString("liked_tracks", null)
-        if (!savedLikedJson.isNullOrBlank()) {
-            try {
-                val type = object : TypeToken<List<Track>>() {}.type
-                val list: List<Track>? = gson.fromJson(savedLikedJson, type)
-                if (list != null) _likedTracks.value = list
-            } catch (e: Exception) {
-                android.util.Log.e("MusicPlayerManager", "Error loading saved liked tracks: ${e.message}")
-            }
-        }
-
-        val savedCustomTracksJson = prefs.getString("custom_tracks", null)
-        if (!savedCustomTracksJson.isNullOrBlank()) {
-            try {
-                val type = object : TypeToken<List<Track>>() {}.type
-                val list: List<Track>? = gson.fromJson(savedCustomTracksJson, type)
-                if (list != null) _customTracks.value = list
-            } catch (e: Exception) {
-                android.util.Log.e("MusicPlayerManager", "Error loading saved custom tracks: ${e.message}")
-            }
-        }
+        loadUserData(email)
     }
 
     private fun saveUserProfileState() {
@@ -207,8 +283,9 @@ class MusicPlayerManager(context: Context) {
 
     private fun savePlaylistsState() {
         try {
+            val key = "custom_playlists_${getUserKey()}"
             val json = gson.toJson(_customPlaylists.value)
-            prefs.edit().putString("custom_playlists", json).apply()
+            prefs.edit().putString(key, json).apply()
         } catch (e: Exception) {
             android.util.Log.e("MusicPlayerManager", "Error saving playlists: ${e.message}")
         }
@@ -216,8 +293,9 @@ class MusicPlayerManager(context: Context) {
 
     private fun saveLikedTracksState() {
         try {
+            val key = "liked_tracks_${getUserKey()}"
             val json = gson.toJson(_likedTracks.value)
-            prefs.edit().putString("liked_tracks", json).apply()
+            prefs.edit().putString(key, json).apply()
         } catch (e: Exception) {
             android.util.Log.e("MusicPlayerManager", "Error saving liked tracks: ${e.message}")
         }
@@ -225,10 +303,21 @@ class MusicPlayerManager(context: Context) {
 
     private fun saveCustomTracksState() {
         try {
+            val key = "custom_tracks_${getUserKey()}"
             val json = gson.toJson(_customTracks.value)
-            prefs.edit().putString("custom_tracks", json).apply()
+            prefs.edit().putString(key, json).apply()
         } catch (e: Exception) {
             android.util.Log.e("MusicPlayerManager", "Error saving custom tracks: ${e.message}")
+        }
+    }
+
+    private fun saveHistoryState() {
+        try {
+            val key = "history_${getUserKey()}"
+            val json = gson.toJson(_history.value)
+            prefs.edit().putString(key, json).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("MusicPlayerManager", "Error saving history: ${e.message}")
         }
     }
 
@@ -421,6 +510,7 @@ class MusicPlayerManager(context: Context) {
         hist.removeAll { it.id == track.id }
         hist.add(0, track)
         _history.value = hist
+        saveHistoryState()
 
         resolveAndPlayExoPlayer(track)
     }
@@ -799,27 +889,98 @@ class MusicPlayerManager(context: Context) {
 
     fun clearHistory() {
         _history.value = emptyList()
+        saveHistoryState()
     }
 
     fun updateUserProfile(username: String, email: String) {
+        val currentEmail = _userProfile.value.email
         _userProfile.value = _userProfile.value.copy(
             username = username.ifBlank { _userProfile.value.username },
             email = email.ifBlank { _userProfile.value.email }
         )
         saveUserProfileState()
+
+        val accounts = getRegisteredAccounts()
+        val idx = accounts.indexOfFirst { it.email.equals(currentEmail, ignoreCase = true) }
+        if (idx >= 0) {
+            accounts[idx] = accounts[idx].copy(
+                username = _userProfile.value.username,
+                email = _userProfile.value.email
+            )
+            saveRegisteredAccounts(accounts)
+        }
     }
 
-    fun login(username: String, email: String) {
-        _userProfile.value = UserProfile(username = username, email = email, isLoggedIn = true)
+    fun login(usernameOrEmail: String, emailInput: String = "", passwordInput: String = ""): Boolean {
+        savePlaylistsState()
+        saveLikedTracksState()
+        saveCustomTracksState()
+        saveHistoryState()
+
+        val email = emailInput.trim().ifBlank { usernameOrEmail.trim() }
+        val accounts = getRegisteredAccounts()
+        var existing = accounts.find { it.email.equals(email, ignoreCase = true) }
+
+        if (existing == null) {
+            val displayName = if (usernameOrEmail.isNotBlank() && !usernameOrEmail.contains("@")) usernameOrEmail
+            else email.substringBefore("@").replaceFirstChar { it.uppercase() }
+            existing = UserAccount(displayName, email, passwordInput, true)
+            accounts.add(existing)
+            saveRegisteredAccounts(accounts)
+        }
+
+        _userProfile.value = UserProfile(
+            username = existing.username,
+            email = existing.email,
+            isPremium = existing.isPremium,
+            isLoggedIn = true
+        )
         saveUserProfileState()
+
+        loadUserData(existing.email)
+
+        _currentTrack.value = null
+        exoPlayer?.stop()
+        exoPlayer?.clearMediaItems()
+        _isPlaying.value = false
+
+        return true
+    }
+
+    fun register(username: String, email: String, password: String): Boolean {
+        val cleanEmail = email.trim()
+        val cleanUsername = username.trim().ifBlank { cleanEmail.substringBefore("@") }
+        val accounts = getRegisteredAccounts()
+        val existingIndex = accounts.indexOfFirst { it.email.equals(cleanEmail, ignoreCase = true) }
+
+        val newAccount = UserAccount(cleanUsername, cleanEmail, password, true)
+        if (existingIndex >= 0) {
+            accounts[existingIndex] = newAccount
+        } else {
+            accounts.add(newAccount)
+        }
+        saveRegisteredAccounts(accounts)
+
+        return login(cleanUsername, cleanEmail, password)
     }
 
     fun logout() {
+        savePlaylistsState()
+        saveLikedTracksState()
+        saveCustomTracksState()
+        saveHistoryState()
+
         _userProfile.value = UserProfile(username = "Tamu", email = "", isLoggedIn = false)
         _currentTrack.value = null
         exoPlayer?.stop()
         exoPlayer?.clearMediaItems()
         _isPlaying.value = false
+
+        _likedTracks.value = emptyList()
+        _customPlaylists.value = emptyList()
+        _customTracks.value = emptyList()
+        _history.value = emptyList()
+
         saveUserProfileState()
     }
 

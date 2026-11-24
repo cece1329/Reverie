@@ -2,7 +2,6 @@ package com.citra.reverie.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -25,10 +24,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.citra.reverie.data.AppStrings
 import com.citra.reverie.model.Playlist
 import com.citra.reverie.model.Track
 
@@ -47,7 +46,7 @@ fun SelectPlaylistDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Tambah ke Playlist",
+                text = AppStrings.get("add_to_playlist"),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -65,7 +64,7 @@ fun SelectPlaylistDialog(
 
                 if (playlists.isEmpty()) {
                     Text(
-                        text = "Belum ada playlist. Buat playlist baru terlebih dahulu di menu Koleksi.",
+                        text = AppStrings.get("no_playlists_notice"),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = 12.dp)
@@ -106,7 +105,7 @@ fun SelectPlaylistDialog(
                                             overflow = TextOverflow.Ellipsis
                                         )
                                         Text(
-                                            text = "${playlist.tracks.size} lagu",
+                                            text = "${playlist.tracks.size} ${AppStrings.get("songs_count")}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -121,7 +120,7 @@ fun SelectPlaylistDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Tutup")
+                Text(AppStrings.get("close"))
             }
         }
     )

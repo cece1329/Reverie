@@ -44,12 +44,12 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +60,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.citra.reverie.data.AppStrings
 import com.citra.reverie.data.DummyMusicRepository
 import com.citra.reverie.model.Category
 import com.citra.reverie.model.Playlist
@@ -90,15 +91,9 @@ fun MusicSearchScreen(
     val likedTrackIds = remember(likedTracks) { likedTracks.map { it.id }.toSet() }
     var selectedTrackForPlaylist by remember { mutableStateOf<Track?>(null) }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.updateSearchQuery("")
-        }
-    }
-
     LaunchedEffect(searchQuery) {
-        if (searchQuery.isNotBlank() && searchQuery.length >= 2) {
-            delay(1000L)
+        if (searchQuery.isNotBlank() && searchQuery.length >= 2 && searchResults.isEmpty() && !isSearching) {
+            delay(500L)
             viewModel.searchVideos()
             viewModel.clearSearchError()
         }
@@ -109,7 +104,7 @@ fun MusicSearchScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Cari Musik",
+                        text = AppStrings.get("search_title"),
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
                     )
@@ -129,7 +124,9 @@ fun MusicSearchScreen(
         ) {
             ModernSearchBar(
                 query = searchQuery,
-                onQueryChange = { viewModel.updateSearchQuery(it) },
+                onQueryChange = {
+                    viewModel.updateSearchQuery(it)
+                },
                 onSearch = {
                     viewModel.searchVideos()
                     viewModel.clearSearchError()
@@ -150,7 +147,7 @@ fun MusicSearchScreen(
 
             if (searchQuery.isNotBlank() || searchResults.isNotEmpty()) {
                 Text(
-                    text = "Hasil Pencarian (${searchResults.size})",
+                    text = "${AppStrings.get("search_results")} (${searchResults.size})",
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -165,7 +162,7 @@ fun MusicSearchScreen(
                             CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                "Mencari lagu...",
+                                text = AppStrings.get("searching_songs"),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -188,7 +185,7 @@ fun MusicSearchScreen(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
                             Text(
-                                "Tidak ada lagu ditemukan",
+                                text = AppStrings.get("no_results"),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -214,7 +211,7 @@ fun MusicSearchScreen(
                 }
             } else {
                 Text(
-                    text = "Jelajahi Genre & Kategori",
+                    text = AppStrings.get("search_categories"),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 12.dp)
@@ -326,7 +323,7 @@ fun ModernSearchBar(
         ) {
             Icon(
                 Icons.Default.Search,
-                contentDescription = "Search",
+                contentDescription = AppStrings.get("search_action"),
                 tint = MaterialTheme.colorScheme.primary
             )
 
@@ -336,7 +333,7 @@ fun ModernSearchBar(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Cari lagu, artis, atau genre...") },
+                placeholder = { Text(AppStrings.get("search_placeholder")) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,
@@ -353,7 +350,7 @@ fun ModernSearchBar(
                 IconButton(onClick = { onQueryChange("") }) {
                     Icon(
                         Icons.Default.Clear,
-                        contentDescription = "Hapus",
+                        contentDescription = AppStrings.get("close"),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -373,7 +370,7 @@ fun ModernSearchBar(
                         color = Color.Black
                     )
                 } else {
-                    Text("Cari", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text(AppStrings.get("search_action"), color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
@@ -410,7 +407,7 @@ fun ErrorMessage(
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
             IconButton(onClick = onDismiss) {
-                Icon(Icons.Default.Clear, contentDescription = "Tutup")
+                Icon(Icons.Default.Clear, contentDescription = AppStrings.get("close"))
             }
         }
     }

@@ -242,7 +242,7 @@ fun SearchScreenPreview() {
     ReverieTheme(darkTheme = true) {
         Surface {
             SearchScreen(
-                currentTrack = DummyMusicRepository.sampleTracks[0],
+                currentTrack = null,
                 isPlaying = false,
                 likedTracks = emptyList(),
                 onTrackSelect = { _, _ -> },

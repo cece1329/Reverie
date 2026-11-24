@@ -88,6 +88,9 @@ object AppStrings {
         "add_to_playlist" to mapOf(AppLanguage.INDONESIAN to "Tambah ke Playlist", AppLanguage.ENGLISH to "Add to Playlist"),
         "delete_playlist" to mapOf(AppLanguage.INDONESIAN to "Hapus Playlist", AppLanguage.ENGLISH to "Delete Playlist"),
         "delete_playlist_confirm" to mapOf(AppLanguage.INDONESIAN to "Apakah Anda yakin ingin menghapus playlist ini?", AppLanguage.ENGLISH to "Are you sure you want to delete this playlist?"),
+        "clear_history" to mapOf(AppLanguage.INDONESIAN to "Hapus Riwayat", AppLanguage.ENGLISH to "Clear History"),
+        "back" to mapOf(AppLanguage.INDONESIAN to "Kembali", AppLanguage.ENGLISH to "Back"),
+        "delete_confirm" to mapOf(AppLanguage.INDONESIAN to "Hapus", AppLanguage.ENGLISH to "Delete"),
 
         // Login & Profile
         "account_title" to mapOf(AppLanguage.INDONESIAN to "Akun & Pengaturan", AppLanguage.ENGLISH to "Account & Settings"),
@@ -118,13 +121,31 @@ object AppStrings {
         "bg_playback_desc" to mapOf(AppLanguage.INDONESIAN to "Aktif via Foreground MediaSession Service", AppLanguage.ENGLISH to "Active via Foreground MediaSession Service"),
 
         // Search & Add Song
-        "search_title" to mapOf(AppLanguage.INDONESIAN to "Cari Musik & Artis", AppLanguage.ENGLISH to "Search Music & Artists"),
+        "search_title" to mapOf(AppLanguage.INDONESIAN to "Cari Musik", AppLanguage.ENGLISH to "Search Music"),
         "search_placeholder" to mapOf(AppLanguage.INDONESIAN to "Lagu, artis, atau genre...", AppLanguage.ENGLISH to "Songs, artists, or genres..."),
         "search_categories" to mapOf(AppLanguage.INDONESIAN to "Jelajahi Genre & Kategori", AppLanguage.ENGLISH to "Explore Genres & Categories"),
         "search_results" to mapOf(AppLanguage.INDONESIAN to "Hasil Pencarian", AppLanguage.ENGLISH to "Search Results"),
+        "searching_songs" to mapOf(AppLanguage.INDONESIAN to "Mencari lagu...", AppLanguage.ENGLISH to "Searching songs..."),
         "no_results" to mapOf(AppLanguage.INDONESIAN to "Tidak ada lagu ditemukan", AppLanguage.ENGLISH to "No songs found"),
+        "search_action" to mapOf(AppLanguage.INDONESIAN to "Cari", AppLanguage.ENGLISH to "Search"),
         "add_custom_track" to mapOf(AppLanguage.INDONESIAN to "Tambah Lagu Sendiri", AppLanguage.ENGLISH to "Add Your Own Song"),
-        "add_track_btn" to mapOf(AppLanguage.INDONESIAN to "+ Lagu", AppLanguage.ENGLISH to "+ Song")
+        "add_track_btn" to mapOf(AppLanguage.INDONESIAN to "+ Lagu", AppLanguage.ENGLISH to "+ Song"),
+        "add_song_device" to mapOf(AppLanguage.INDONESIAN to "Tambah Lagu dari HP", AppLanguage.ENGLISH to "Add Song from Device"),
+        "choose_mp3_file" to mapOf(AppLanguage.INDONESIAN to "Pilih File MP3 dari HP", AppLanguage.ENGLISH to "Choose MP3 File from Device"),
+        "selected_prefix" to mapOf(AppLanguage.INDONESIAN to "Terpilih:", AppLanguage.ENGLISH to "Selected:"),
+        "song_title_label" to mapOf(AppLanguage.INDONESIAN to "Judul Lagu", AppLanguage.ENGLISH to "Song Title"),
+        "artist_name_label" to mapOf(AppLanguage.INDONESIAN to "Nama Artis", AppLanguage.ENGLISH to "Artist Name"),
+        "cover_url_label" to mapOf(AppLanguage.INDONESIAN to "URL Gambar Cover (opsional)", AppLanguage.ENGLISH to "Cover Image URL (optional)"),
+        "error_pick_file" to mapOf(AppLanguage.INDONESIAN to "Pilih file MP3 dari HP Anda terlebih dahulu", AppLanguage.ENGLISH to "Please choose an MP3 file from your device first"),
+        "btn_add_song_confirm" to mapOf(AppLanguage.INDONESIAN to "Tambah Lagu", AppLanguage.ENGLISH to "Add Song"),
+        "btn_add_song_short" to mapOf(AppLanguage.INDONESIAN to "Lagu", AppLanguage.ENGLISH to "Song"),
+        "btn_add_playlist_short" to mapOf(AppLanguage.INDONESIAN to "Playlist", AppLanguage.ENGLISH to "Playlist"),
+        "close" to mapOf(AppLanguage.INDONESIAN to "Tutup", AppLanguage.ENGLISH to "Close"),
+        "no_playlists_notice" to mapOf(AppLanguage.INDONESIAN to "Belum ada playlist. Buat playlist baru terlebih dahulu di menu Koleksi.", AppLanguage.ENGLISH to "No playlists yet. Create a new playlist first in Library."),
+        "all_fields_required" to mapOf(AppLanguage.INDONESIAN to "Semua kolom wajib diisi", AppLanguage.ENGLISH to "All fields are required"),
+        "divider_or" to mapOf(AppLanguage.INDONESIAN to "  atau  ", AppLanguage.ENGLISH to "  or  "),
+        "reverie_collection_subtitle" to mapOf(AppLanguage.INDONESIAN to "Koleksi Musik Pribadi", AppLanguage.ENGLISH to "Personal Music Collection"),
+        "btn_add_music" to mapOf(AppLanguage.INDONESIAN to "+ Lagu", AppLanguage.ENGLISH to "+ Song")
     )
 
     fun get(key: String, lang: AppLanguage = LanguageManager.currentLanguage): String {

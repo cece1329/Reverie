@@ -77,7 +77,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.citra.reverie.data.AppStrings
-import com.citra.reverie.data.DummyMusicRepository
 import com.citra.reverie.model.Track
 import com.citra.reverie.player.RepeatMode
 import com.citra.reverie.ui.components.TrackItem
@@ -274,6 +273,7 @@ fun NowPlayingScreen(
                         onToggleShuffle = onToggleShuffle,
                         onToggleRepeat = onToggleRepeat,
                         onToggleLike = { onToggleLike(track) },
+                        isLandscape = isLandscape,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -299,14 +299,122 @@ private fun MainPlayerContent(
     onToggleShuffle: () -> Unit,
     onToggleRepeat: () -> Unit,
     onToggleLike: () -> Unit,
+    isLandscape: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Spacer(modifier = Modifier.height(8.dp))
+    if (isLandscape) {
+        Row(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(horizontal = 32.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(28.dp)
+        ) {
+            val artworkScale by animateFloatAsState(
+                targetValue = if (isPlaying) 1f else 0.9f,
+                animationSpec = tween(400, easing = FastOutSlowInEasing),
+                label = "artwork_scale_ls"
+            )
+
+            Box(
+                modifier = Modifier
+                    .size(190.dp)
+                    .scale(artworkScale)
+                    .clip(RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = track.coverUrl,
+                    contentDescription = track.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                if (isBuffering && !isPlaying) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            strokeWidth = 3.dp,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = track.title,
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 20.sp
+                            ),
+                            color = Color.White,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = track.artist,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.65f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    IconButton(onClick = onToggleLike) {
+                        Icon(
+                            imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = "Favorit",
+                            tint = if (isLiked) MaterialTheme.colorScheme.primary else Color.White.copy(alpha = 0.6f),
+                            modifier = Modifier.size(26.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SeekBarSection(
+                    progressMs = progressMs,
+                    durationMs = durationMs,
+                    onSeekTo = onSeekTo
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                ControlsSection(
+                    isPlaying = isPlaying,
+                    isBuffering = isBuffering,
+                    shuffleMode = shuffleMode,
+                    repeatMode = repeatMode,
+                    onPlayPauseClick = onPlayPauseClick,
+                    onNextClick = onNextClick,
+                    onPreviousClick = onPreviousClick,
+                    onToggleShuffle = onToggleShuffle,
+                    onToggleRepeat = onToggleRepeat
+                )
+            }
+        }
+    } else {
+        Column(
+            modifier = modifier.padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Spacer(modifier = Modifier.height(8.dp))
 
         // Artwork yang besar dengan animasi scale saat playing
         val artworkScale by animateFloatAsState(
@@ -434,6 +542,7 @@ private fun MainPlayerContent(
 
         Spacer(modifier = Modifier.height(32.dp))
     }
+}
 }
 
 @Composable
@@ -730,17 +839,26 @@ private fun formatMs(ms: Long): String {
 @Preview(showBackground = true, name = "Now Playing Screen Preview")
 @Composable
 fun NowPlayingScreenPreview() {
+    val sampleTrack = Track(
+        id = "prev_1",
+        title = "Reverie Song",
+        artist = "Artist Name",
+        album = "Album",
+        coverUrl = "",
+        audioUrl = "",
+        durationMs = 210000L
+    )
     ReverieTheme(darkTheme = true) {
         Surface {
             NowPlayingScreen(
-                track = DummyMusicRepository.sampleTracks[0],
+                track = sampleTrack,
                 isPlaying = true,
                 progressMs = 45000L,
                 durationMs = 210000L,
                 shuffleMode = false,
                 repeatMode = RepeatMode.OFF,
                 isLiked = true,
-                queue = DummyMusicRepository.sampleTracks,
+                queue = listOf(sampleTrack),
                 isBuffering = false,
                 onPlayPauseClick = {},
                 onNextClick = {},

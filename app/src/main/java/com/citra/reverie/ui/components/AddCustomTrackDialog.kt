@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.citra.reverie.data.AppStrings
 
 /**
  * AddCustomTrackDialog
@@ -52,13 +53,12 @@ fun AddCustomTrackDialog(
     var selectedFileName by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf("") }
 
-    // Launcher untuk memilih file MP3 dari HP
     val audioPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         uri?.let {
             selectedFileUri = it
-            val name = it.lastPathSegment?.substringAfterLast("/")?.substringBeforeLast(".") ?: "Lagu Lokal"
+            val name = it.lastPathSegment?.substringAfterLast("/")?.substringBeforeLast(".") ?: "Local Audio"
             selectedFileName = name
             if (titleInput.isBlank()) titleInput = name
             errorMessage = ""
@@ -69,14 +69,13 @@ fun AddCustomTrackDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Tambah Lagu dari HP",
+                text = AppStrings.get("add_song_device"),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Tombol Pilih MP3 dari HP
                 Button(
                     onClick = { audioPickerLauncher.launch("audio/*") },
                     modifier = Modifier.fillMaxWidth().height(46.dp),
@@ -89,7 +88,7 @@ fun AddCustomTrackDialog(
                     Icon(Icons.Filled.Folder, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (selectedFileName.isNotBlank()) "Terpilih: $selectedFileName" else "Pilih File MP3 dari HP",
+                        text = if (selectedFileName.isNotBlank()) "${AppStrings.get("selected_prefix")} $selectedFileName" else AppStrings.get("choose_mp3_file"),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
@@ -99,7 +98,7 @@ fun AddCustomTrackDialog(
                 OutlinedTextField(
                     value = titleInput,
                     onValueChange = { titleInput = it; errorMessage = "" },
-                    label = { Text("Judul Lagu") },
+                    label = { Text(AppStrings.get("song_title_label")) },
                     leadingIcon = { Icon(Icons.Filled.MusicNote, contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -109,7 +108,7 @@ fun AddCustomTrackDialog(
                 OutlinedTextField(
                     value = artistInput,
                     onValueChange = { artistInput = it; errorMessage = "" },
-                    label = { Text("Nama Artis") },
+                    label = { Text(AppStrings.get("artist_name_label")) },
                     leadingIcon = { Icon(Icons.Filled.Person, contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -119,7 +118,7 @@ fun AddCustomTrackDialog(
                 OutlinedTextField(
                     value = coverUrlInput,
                     onValueChange = { coverUrlInput = it },
-                    label = { Text("URL Gambar Cover (opsional)") },
+                    label = { Text(AppStrings.get("cover_url_label")) },
                     leadingIcon = { Icon(Icons.Filled.Image, contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
@@ -139,24 +138,24 @@ fun AddCustomTrackDialog(
             Button(
                 onClick = {
                     if (selectedFileUri == null) {
-                        errorMessage = "Pilih file MP3 dari HP Anda terlebih dahulu"
+                        errorMessage = AppStrings.get("error_pick_file")
                         return@Button
                     }
                     onAddLocalTrack(
                         titleInput.ifBlank { selectedFileName },
-                        artistInput.ifBlank { "Perangkat Saya" },
+                        artistInput.ifBlank { "My Device" },
                         coverUrlInput.trim(),
                         selectedFileUri.toString()
                     )
                 },
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text("Tambah Lagu", color = Color.Black, fontWeight = FontWeight.Bold)
+                Text(AppStrings.get("btn_add_song_confirm"), color = Color.Black, fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Batal")
+                Text(AppStrings.get("btn_cancel"))
             }
         }
     )

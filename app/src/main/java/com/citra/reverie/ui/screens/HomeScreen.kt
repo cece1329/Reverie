@@ -36,6 +36,7 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -61,7 +62,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.citra.reverie.data.AppStrings
 import com.citra.reverie.data.AudiusApiService
-import com.citra.reverie.data.DummyMusicRepository
 import com.citra.reverie.data.LanguageManager
 import com.citra.reverie.model.Artist
 import com.citra.reverie.model.Playlist
@@ -110,7 +110,7 @@ fun HomeScreen(
     }
 
     val audiusService = remember { AudiusApiService() }
-    var allTracks by remember { mutableStateOf<List<Track>>(DummyMusicRepository.popularTracks) }
+    var allTracks by remember { mutableStateOf<List<Track>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedFilterKey) {
@@ -139,6 +139,51 @@ fun HomeScreen(
     }
 
     val likedTrackIds = remember(likedTracks) { likedTracks.map { it.id }.toSet() }
+
+    val featuredPlaylists = remember(allTracks) {
+        if (allTracks.isNotEmpty()) {
+            listOf(
+                Playlist(
+                    id = "pl_featured_1",
+                    name = "Hits Pop Reverie",
+                    description = "Lagu-lagu terpopuler dan terhangat dari musisi pilihan",
+                    coverUrl = allTracks.firstOrNull()?.coverUrl ?: "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500",
+                    trackCount = allTracks.take(8).size,
+                    tracks = allTracks.take(8)
+                ),
+                Playlist(
+                    id = "pl_featured_2",
+                    name = "Indie & Chill",
+                    description = "Iringan melodi santai untuk menemani harimu",
+                    coverUrl = allTracks.getOrNull(2)?.coverUrl ?: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500",
+                    trackCount = allTracks.drop(3).take(6).size,
+                    tracks = allTracks.drop(3).take(6)
+                ),
+                Playlist(
+                    id = "pl_featured_3",
+                    name = "Top Viral Global",
+                    description = "Lagu-lagu yang sedang trending di seluruh dunia",
+                    coverUrl = allTracks.getOrNull(4)?.coverUrl ?: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=500",
+                    trackCount = allTracks.drop(6).take(6).size,
+                    tracks = allTracks.drop(6).take(6)
+                )
+            ).filter { it.tracks.isNotEmpty() }
+        } else emptyList()
+    }
+
+    val popularArtists = remember(allTracks) {
+        allTracks
+            .distinctBy { it.artist }
+            .take(6)
+            .mapIndexed { idx, track ->
+                Artist(
+                    id = "art_$idx",
+                    name = track.artist,
+                    imageUrl = track.coverUrl,
+                    genre = track.genre.ifBlank { "Music" }
+                )
+            }
+    }
 
     Column(
         modifier = modifier
@@ -206,43 +251,47 @@ fun HomeScreen(
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Black)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("+ Lagu", fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(AppStrings.get("btn_add_music"), fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             }
 
             // FEATURED PLAYLIST
-            Column {
-                SectionHeader(title = AppStrings.get("section_playlists"))
-                Spacer(modifier = Modifier.height(12.dp))
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    contentPadding = PaddingValues(end = 4.dp)
-                ) {
-                    items(DummyMusicRepository.samplePlaylists, key = { it.id }) { playlist ->
-                        PlaylistCard(playlist = playlist, onClick = {
-                            selectedPlaylist = playlist
-                        })
+            if (featuredPlaylists.isNotEmpty()) {
+                Column {
+                    SectionHeader(title = AppStrings.get("section_playlists"))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        contentPadding = PaddingValues(end = 4.dp)
+                    ) {
+                        items(featuredPlaylists, key = { it.id }) { playlist ->
+                            PlaylistCard(playlist = playlist, onClick = {
+                                selectedPlaylist = playlist
+                            })
+                        }
                     }
                 }
             }
 
             // ARTIS POPULER
-            Column {
-                SectionHeader(title = AppStrings.get("section_popular_artists"))
-                Spacer(modifier = Modifier.height(12.dp))
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    DummyMusicRepository.popularArtists.forEach { artist ->
-                        ArtistItem(artist = artist, onClick = {
-                            val artistTracks = allTracks.filter {
-                                it.artist.contains(artist.name, ignoreCase = true)
-                            }
-                            if (artistTracks.isNotEmpty()) {
-                                onTrackSelect(artistTracks.first(), artistTracks)
-                            }
-                        })
+            if (popularArtists.isNotEmpty()) {
+                Column {
+                    SectionHeader(title = AppStrings.get("section_popular_artists"))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        popularArtists.forEach { artist ->
+                            ArtistItem(artist = artist, onClick = {
+                                val artistTracks = allTracks.filter {
+                                    it.artist.contains(artist.name, ignoreCase = true)
+                                }
+                                if (artistTracks.isNotEmpty()) {
+                                    onTrackSelect(artistTracks.first(), artistTracks)
+                                }
+                            })
+                        }
                     }
                 }
             }
@@ -263,43 +312,55 @@ fun HomeScreen(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
 
-                AnimatedVisibility(
-                    visible = !isLoading,
-                    enter = fadeIn() + expandVertically()
-                ) {
-                    if (allTracks.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().height(120.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    Icons.Filled.MusicNote,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-                                    modifier = Modifier.size(40.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = AppStrings.get("no_songs_genre"),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            }
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = AppStrings.get("loading_api"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            allTracks.forEach { track ->
-                                TrackItem(
-                                    track = track,
-                                    isCurrentTrack = currentTrack?.id == track.id,
-                                    isPlaying = isPlaying && currentTrack?.id == track.id,
-                                    isLiked = likedTrackIds.contains(track.id),
-                                    onClick = { onTrackSelect(track, allTracks) },
-                                    onLikeToggle = { onLikeToggle(track) },
-                                    onAddToPlaylist = { selectedTrackForPlaylist = it }
-                                )
-                            }
+                    }
+                } else if (allTracks.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(120.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Filled.MusicNote,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = AppStrings.get("no_songs_genre"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        allTracks.forEach { track ->
+                            TrackItem(
+                                track = track,
+                                isCurrentTrack = currentTrack?.id == track.id,
+                                isPlaying = isPlaying && currentTrack?.id == track.id,
+                                isLiked = likedTrackIds.contains(track.id),
+                                onClick = { onTrackSelect(track, allTracks) },
+                                onLikeToggle = { onLikeToggle(track) },
+                                onAddToPlaylist = { selectedTrackForPlaylist = it }
+                            )
                         }
                     }
                 }

@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,9 +65,9 @@ fun ReverieApp(
         return
     }
 
-    var isDarkMode by remember { mutableStateOf(true) }
-    var currentTab by remember { mutableStateOf(ReverieTab.HOME) }
-    var isNowPlayingExpanded by remember { mutableStateOf(false) }
+    var isDarkMode by rememberSaveable { mutableStateOf(true) }
+    var currentTab by rememberSaveable { mutableStateOf(ReverieTab.HOME) }
+    var isNowPlayingExpanded by rememberSaveable { mutableStateOf(false) }
 
     val currentTrack by playerManager.currentTrack.collectAsState()
     val isPlaying by playerManager.isPlaying.collectAsState()
@@ -98,8 +99,14 @@ fun ReverieApp(
                         playlistsCount = customPlaylists.size,
                         likedCount = likedTracks.size,
                         onUpdateProfile = { u, e -> playerManager.updateUserProfile(u, e) },
-                        onLogin = { u, e -> playerManager.login(u, e) },
-                        onRegister = { u, e, _ -> playerManager.login(u, e) },
+                        onLogin = { u, e, p ->
+                            playerManager.login(u, e, p)
+                            currentTab = ReverieTab.HOME
+                        },
+                        onRegister = { u, e, p ->
+                            playerManager.register(u, e, p)
+                            currentTab = ReverieTab.HOME
+                        },
                         onLogout = { playerManager.logout() },
                         onToggleTheme = { isDarkMode = !isDarkMode },
                         isDarkMode = isDarkMode,
@@ -163,8 +170,14 @@ fun ReverieApp(
                                 onUpdateProfile = { u, e ->
                                     playerManager.updateUserProfile(u, e)
                                 },
-                                onLogin = { u, e -> playerManager.login(u, e) },
-                                onRegister = { u, e, _ -> playerManager.login(u, e) },
+                                onLogin = { u, e, p ->
+                                    playerManager.login(u, e, p)
+                                    currentTab = ReverieTab.HOME
+                                },
+                                onRegister = { u, e, p ->
+                                    playerManager.register(u, e, p)
+                                    currentTab = ReverieTab.HOME
+                                },
                                 onLogout = { playerManager.logout() },
                                 onToggleTheme = { isDarkMode = !isDarkMode },
                                 onToggleLanguage = { LanguageManager.toggleLanguage() }
@@ -251,8 +264,14 @@ fun ReverieApp(
                                 onUpdateProfile = { u, e ->
                                     playerManager.updateUserProfile(u, e)
                                 },
-                                onLogin = { u, e -> playerManager.login(u, e) },
-                                onRegister = { u, e, _ -> playerManager.login(u, e) },
+                                onLogin = { u, e, p ->
+                                    playerManager.login(u, e, p)
+                                    currentTab = ReverieTab.HOME
+                                },
+                                onRegister = { u, e, p ->
+                                    playerManager.register(u, e, p)
+                                    currentTab = ReverieTab.HOME
+                                },
                                 onLogout = { playerManager.logout() },
                                 onToggleTheme = { isDarkMode = !isDarkMode },
                                 onToggleLanguage = { LanguageManager.toggleLanguage() }
@@ -315,7 +334,7 @@ private fun MainContentScreen(
     onDeleteCustomTrack: ((String) -> Unit)? = null,
     onClearHistory: () -> Unit,
     onUpdateProfile: (username: String, email: String) -> Unit,
-    onLogin: (String, String) -> Unit,
+    onLogin: (String, String, String) -> Unit,
     onRegister: (String, String, String) -> Unit,
     onLogout: () -> Unit,
     onToggleTheme: () -> Unit,

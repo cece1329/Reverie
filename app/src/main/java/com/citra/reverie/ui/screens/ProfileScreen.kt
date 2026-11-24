@@ -83,7 +83,7 @@ fun ProfileScreen(
     playlistsCount: Int,
     likedCount: Int,
     onUpdateProfile: (username: String, email: String) -> Unit,
-    onLogin: (String, String) -> Unit,
+    onLogin: (usernameOrEmail: String, email: String, password: String) -> Unit,
     onRegister: (String, String, String) -> Unit,
     onLogout: () -> Unit,
     onToggleTheme: () -> Unit,
@@ -204,7 +204,7 @@ fun ProfileScreen(
                             OutlinedTextField(
                                 value = editNameInput,
                                 onValueChange = { editNameInput = it },
-                                label = { Text("Nama Pengguna") },
+                                label = { Text(AppStrings.get("username_label")) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
@@ -212,7 +212,7 @@ fun ProfileScreen(
                             OutlinedTextField(
                                 value = editEmailInput,
                                 onValueChange = { editEmailInput = it },
-                                label = { Text("Alamat Email") },
+                                label = { Text(AppStrings.get("email_label")) },
                                 singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp)
@@ -229,7 +229,7 @@ fun ProfileScreen(
                             ) {
                                 Icon(Icons.Filled.Save, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.Black)
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Simpan Profil", color = Color.Black, fontWeight = FontWeight.Bold)
+                                Text(AppStrings.get("save_profile"), color = Color.Black, fontWeight = FontWeight.Bold)
                             }
                         }
                     } else {
@@ -275,7 +275,7 @@ fun ProfileScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Tombol Edit Profil (Di BAWAH Email & Badge)
+                        // Tombol Edit Profil
                         OutlinedButton(
                             onClick = { isEditingProfile = true },
                             shape = RoundedCornerShape(14.dp),
@@ -291,7 +291,7 @@ fun ProfileScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Edit Profil",
+                                text = AppStrings.get("edit_profile"),
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -460,7 +460,7 @@ fun ProfileScreen(
                             }
                             if (authTabIndex == 0) {
                                 val name = emailInput.substringBefore("@").replaceFirstChar { it.uppercase() }
-                                onLogin(name, emailInput)
+                                onLogin(name, emailInput, passwordInput)
                             } else {
                                 onRegister(usernameInput, emailInput, passwordInput)
                             }
@@ -517,9 +517,9 @@ fun ProfileScreen(
                             val account = task.getResult(ApiException::class.java)
                             val name = account.displayName ?: account.givenName ?: "Google User"
                             val email = account.email ?: "user@gmail.com"
-                            onLogin(name, email)
+                            onLogin(name, email, "")
                         } catch (e: Exception) {
-                            onLogin("Google User", "google.user@reverie.app")
+                            onLogin("Google User", "google.user@reverie.app", "")
                         }
                     }
 
@@ -533,7 +533,7 @@ fun ProfileScreen(
                                 val client = GoogleSignIn.getClient(context, gso)
                                 googleSignInLauncher.launch(client.signInIntent)
                             } catch (_: Exception) {
-                                onLogin("Google User", "google.user@reverie.app")
+                                onLogin("Google User", "google.user@reverie.app", "")
                             }
                         },
                         modifier = Modifier

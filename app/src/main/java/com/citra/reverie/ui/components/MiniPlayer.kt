@@ -41,7 +41,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import com.citra.reverie.data.DummyMusicRepository
 import com.citra.reverie.model.Track
 import com.citra.reverie.ui.theme.ReverieTheme
 
@@ -208,7 +207,15 @@ fun MiniPlayerPreview() {
     ReverieTheme(darkTheme = true) {
         Surface {
             MiniPlayer(
-                track = DummyMusicRepository.sampleTracks[0],
+                track = Track(
+                    id = "prev_1",
+                    title = "Reverie Song",
+                    artist = "Artist Name",
+                    album = "Album",
+                    coverUrl = "",
+                    audioUrl = "",
+                    durationMs = 210000L
+                ),
                 isPlaying = true,
                 progressMs = 45000L,
                 durationMs = 210000L,
