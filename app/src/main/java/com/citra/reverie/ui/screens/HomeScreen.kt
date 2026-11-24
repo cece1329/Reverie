@@ -6,6 +6,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -198,13 +199,14 @@ fun HomeScreen(
                 // Tombol + Tambah Lagu Sendiri
                 Button(
                     onClick = { showAddTrackDialog = true },
-                    shape = RoundedCornerShape(20.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    shape = RoundedCornerShape(50.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.height(34.dp)
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
+                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.Black)
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("+ Lagu", fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("+ Lagu", fontSize = 11.sp, color = Color.Black, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -338,14 +340,30 @@ fun HomeScreen(
 
 @Composable
 private fun SectionHeader(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium.copy(
-            fontWeight = FontWeight.Bold,
-            fontSize = 17.sp
-        ),
-        color = MaterialTheme.colorScheme.onSurface
-    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(width = 4.dp, height = 18.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary
+                        )
+                    )
+                )
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold,
+                fontSize = 17.sp
+            ),
+            color = MaterialTheme.colorScheme.onSurface
+        )
+    }
 }
 
 @Composable
@@ -357,73 +375,78 @@ fun PlaylistCard(playlist: Playlist, onClick: () -> Unit) {
         label = "playlist_scale"
     )
 
-    Box(
+    Surface(
         modifier = Modifier
             .width(165.dp)
             .height(205.dp)
             .scale(scale)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(22.dp))
             .clickable {
                 pressed = true
                 onClick()
                 pressed = false
-            }
+            },
+        shape = RoundedCornerShape(22.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)),
+        tonalElevation = 6.dp
     ) {
-        AsyncImage(
-            model = playlist.coverUrl,
-            contentDescription = playlist.name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            AsyncImage(
+                model = playlist.coverUrl,
+                contentDescription = playlist.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.8f)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.85f)
+                            )
                         )
                     )
-                )
-        )
+            )
 
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .padding(10.dp)
-                .size(32.dp)
-                .align(Alignment.TopEnd)
-        ) {
-            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                Icon(
-                    Icons.Filled.PlayArrow,
-                    contentDescription = AppStrings.get("play"),
-                    tint = Color.Black,
-                    modifier = Modifier.size(18.dp)
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .padding(10.dp)
+                    .size(34.dp)
+                    .align(Alignment.TopEnd)
+            ) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                    Icon(
+                        Icons.Filled.PlayArrow,
+                        contentDescription = AppStrings.get("play"),
+                        tint = Color.Black,
+                        modifier = Modifier.size(19.dp)
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(14.dp)
+            ) {
+                Text(
+                    text = playlist.name,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${playlist.trackCount} ${AppStrings.get("songs_count")}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.7f)
                 )
             }
-        }
-
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(12.dp)
-        ) {
-            Text(
-                text = playlist.name,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = Color.White,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = "${playlist.trackCount} ${AppStrings.get("songs_count")}",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.65f)
-            )
         }
     }
 }
@@ -433,20 +456,31 @@ fun ArtistItem(artist: Artist, onClick: () -> Unit = {}) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(80.dp)
+            .width(84.dp)
             .clickable(onClick = onClick)
     ) {
         Box(
             modifier = Modifier
-                .size(72.dp)
+                .size(76.dp)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.secondary,
+                            MaterialTheme.colorScheme.primary
+                        )
+                    )
+                )
+                .padding(2.5.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surface)
         ) {
             AsyncImage(
                 model = artist.imageUrl,
                 contentDescription = artist.name,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize().clip(CircleShape)
             )
         }
         Spacer(modifier = Modifier.height(6.dp))

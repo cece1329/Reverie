@@ -70,10 +70,12 @@ object AppStrings {
         // Library & Playlists
         "my_library" to mapOf(AppLanguage.INDONESIAN to "Koleksi Musik Anda", AppLanguage.ENGLISH to "Your Music Library"),
         "tab_favorites" to mapOf(AppLanguage.INDONESIAN to "Favorit", AppLanguage.ENGLISH to "Favorites"),
+        "tab_my_songs" to mapOf(AppLanguage.INDONESIAN to "Lagu Saya", AppLanguage.ENGLISH to "My Songs"),
         "tab_history" to mapOf(AppLanguage.INDONESIAN to "Riwayat", AppLanguage.ENGLISH to "History"),
         "tab_custom_playlists" to mapOf(AppLanguage.INDONESIAN to "Playlist Saya", AppLanguage.ENGLISH to "My Playlists"),
         "play_all" to mapOf(AppLanguage.INDONESIAN to "Putar Semua", AppLanguage.ENGLISH to "Play All"),
         "empty_favorites" to mapOf(AppLanguage.INDONESIAN to "Belum ada lagu favorit tersimpan", AppLanguage.ENGLISH to "No favorite songs saved yet"),
+        "empty_my_songs" to mapOf(AppLanguage.INDONESIAN to "Belum ada lagu ditambahkan. Tekan '+ Lagu' untuk menambahkan dari HP Anda!", AppLanguage.ENGLISH to "No custom songs added yet. Tap '+ Song' to add music from your phone!"),
         "empty_history" to mapOf(AppLanguage.INDONESIAN to "Belum ada riwayat lagu yang diputar", AppLanguage.ENGLISH to "No playback history yet"),
         "empty_playlists" to mapOf(AppLanguage.INDONESIAN to "Belum ada playlist buatanmu. Yuk buat sekarang!", AppLanguage.ENGLISH to "No playlists yet. Create your first playlist!"),
         "btn_create_playlist" to mapOf(AppLanguage.INDONESIAN to "+ Buat Playlist Baru", AppLanguage.ENGLISH to "+ Create New Playlist"),

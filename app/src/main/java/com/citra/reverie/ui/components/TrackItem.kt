@@ -1,5 +1,6 @@
 package com.citra.reverie.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -30,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,111 +52,136 @@ fun TrackItem(
     onClick: () -> Unit,
     onLikeToggle: () -> Unit,
     onAddToPlaylist: ((Track) -> Unit)? = null,
+    onDeleteTrack: ((Track) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
+    val shape = RoundedCornerShape(16.dp)
     val backgroundColor = if (isCurrentTrack) {
-        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
     } else {
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f)
+    }
+    val borderColor = if (isCurrentTrack) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+    } else {
+        Color.Transparent
     }
 
-    Row(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(backgroundColor)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clip(shape)
+            .clickable(onClick = onClick),
+        shape = shape,
+        color = backgroundColor,
+        border = if (isCurrentTrack) BorderStroke(1.dp, borderColor) else null,
+        tonalElevation = if (isCurrentTrack) 4.dp else 0.dp
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(10.dp)),
-            contentAlignment = Alignment.Center
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            AsyncImage(
-                model = track.coverUrl,
-                contentDescription = track.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.matchParentSize()
-            )
-            if (isCurrentTrack) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    WaveformVisualizer(
-                        isPlaying = isPlaying,
-                        barColor = MaterialTheme.colorScheme.primary
-                    )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                AsyncImage(
+                    model = track.coverUrl,
+                    contentDescription = track.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.matchParentSize()
+                )
+                if (isCurrentTrack) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.45f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        WaveformVisualizer(
+                            isPlaying = isPlaying,
+                            barColor = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-        Column(modifier = Modifier.weight(1f)) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = track.title,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.SemiBold,
+                        fontSize = 15.sp
+                    ),
+                    color = if (isCurrentTrack) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${track.artist} • ${track.album}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
             Text(
-                text = track.title,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = if (isCurrentTrack) FontWeight.Bold else FontWeight.SemiBold,
-                    fontSize = 15.sp
-                ),
-                color = if (isCurrentTrack) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                text = track.formattedDuration(),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = "${track.artist} • ${track.album}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
 
-        Spacer(modifier = Modifier.width(8.dp))
+            IconButton(onClick = onLikeToggle) {
+                Icon(
+                    imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = "Favorite",
+                    tint = if (isLiked) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-        Text(
-            text = track.formattedDuration(),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+            if (onAddToPlaylist != null || onDeleteTrack != null) {
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            Icons.Filled.MoreVert,
+                            contentDescription = "Opsi",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
 
-        IconButton(onClick = onLikeToggle) {
-            Icon(
-                imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                contentDescription = "Favorite",
-                tint = if (isLiked) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        if (onAddToPlaylist != null) {
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        Icons.Filled.MoreVert,
-                        contentDescription = "Opsi",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Tambah ke Playlist") },
-                        onClick = {
-                            showMenu = false
-                            onAddToPlaylist(track)
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        if (onAddToPlaylist != null) {
+                            DropdownMenuItem(
+                                text = { Text("Tambah ke Playlist") },
+                                onClick = {
+                                    showMenu = false
+                                    onAddToPlaylist(track)
+                                }
+                            )
                         }
-                    )
+
+                        if (onDeleteTrack != null) {
+                            DropdownMenuItem(
+                                text = { Text("Hapus Lagu", color = MaterialTheme.colorScheme.error) },
+                                onClick = {
+                                    showMenu = false
+                                    onDeleteTrack(track)
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }

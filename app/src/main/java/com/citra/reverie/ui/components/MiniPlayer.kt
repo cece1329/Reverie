@@ -45,6 +45,9 @@ import com.citra.reverie.data.DummyMusicRepository
 import com.citra.reverie.model.Track
 import com.citra.reverie.ui.theme.ReverieTheme
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.Surface
+
 @Composable
 fun MiniPlayer(
     track: Track?,
@@ -63,39 +66,46 @@ fun MiniPlayer(
         (progressMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
     } else 0f
 
-    Box(
+    val shape = RoundedCornerShape(22.dp)
+
+    Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 6.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .clickable(onClick = onExpandClick)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .clip(shape)
+            .clickable(onClick = onExpandClick),
+        shape = shape,
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+        tonalElevation = 8.dp
     ) {
-        // Background blurred artwork
-        AsyncImage(
-            model = track.coverUrl,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = with(this) {
-                Modifier
-                    .matchParentSize()
-                    .blur(30.dp)
-            }
-        )
-        // Overlay gelap
-        Box(
-            modifier = with(this) {
-                Modifier
-                    .matchParentSize()
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                Color.Black.copy(alpha = 0.85f),
-                                Color.Black.copy(alpha = 0.65f)
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Background blurred artwork
+            AsyncImage(
+                model = track.coverUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = with(this) {
+                    Modifier
+                        .matchParentSize()
+                        .blur(32.dp)
+                }
+            )
+            // Overlay gelap bercahaya
+            Box(
+                modifier = with(this) {
+                    Modifier
+                        .matchParentSize()
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFF0C091D).copy(alpha = 0.90f),
+                                    Color(0xFF161233).copy(alpha = 0.75f)
+                                )
                             )
                         )
-                    )
-            }
-        )
+                }
+            )
 
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -189,6 +199,7 @@ fun MiniPlayer(
             )
         }
     }
+}
 }
 
 @Preview(showBackground = true, name = "Mini Player Preview")

@@ -1,5 +1,6 @@
 package com.citra.reverie.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,12 +25,12 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -68,6 +69,7 @@ fun LibraryScreen(
     currentTrack: Track?,
     isPlaying: Boolean,
     likedTracks: List<Track>,
+    customTracks: List<Track> = emptyList(),
     history: List<Track>,
     customPlaylists: List<Playlist>,
     onCreatePlaylist: (String, String) -> Unit,
@@ -75,6 +77,7 @@ fun LibraryScreen(
     onAddTrackToPlaylist: (playlistId: String, track: Track) -> Unit,
     onAddCustomTrack: (title: String, artist: String, coverUrl: String, songUrl: String) -> Unit,
     onAddLocalTrack: (title: String, artist: String, coverUrl: String, fileUri: String) -> Unit,
+    onDeleteCustomTrack: ((String) -> Unit)? = null,
     onClearHistory: () -> Unit,
     onTrackSelect: (Track, List<Track>) -> Unit,
     onLikeToggle: (Track) -> Unit,
@@ -106,6 +109,7 @@ fun LibraryScreen(
 
     val tabs = listOf(
         "${AppStrings.get("tab_favorites")} (${likedTracks.size})",
+        "${AppStrings.get("tab_my_songs")} (${customTracks.size})",
         "${AppStrings.get("tab_custom_playlists")} (${customPlaylists.size})",
         "${AppStrings.get("tab_history")} (${history.size})"
     )
@@ -115,20 +119,23 @@ fun LibraryScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
-        // Header
+        // Header dengan layout teratur (bebas bentrok/nabrak)
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = AppStrings.get("my_library"),
                     style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
+                        fontSize = 22.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
                 )
                 Text(
                     text = "Reverie Collection",
@@ -137,26 +144,55 @@ fun LibraryScreen(
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Group Tombol + Lagu dan + Playlist
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 OutlinedButton(
                     onClick = { showAddTrackDialog = true },
-                    shape = RoundedCornerShape(20.dp),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    shape = RoundedCornerShape(50.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+                    modifier = Modifier.height(34.dp)
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Lagu", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Lagu",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
 
                 Button(
                     onClick = { showCreateDialog = true },
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(50.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.height(34.dp)
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.Black)
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = Color.Black
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text(text = "Playlist", fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text(
+                        text = "Playlist",
+                        fontSize = 11.sp,
+                        color = Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -190,7 +226,7 @@ fun LibraryScreen(
                             text = title,
                             fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
                             color = if (selectedTabIndex == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             maxLines = 1
                         )
                     }
@@ -240,7 +276,10 @@ fun LibraryScreen(
                                 isLiked = true,
                                 onClick = { onTrackSelect(track, likedTracks) },
                                 onLikeToggle = { onLikeToggle(track) },
-                                onAddToPlaylist = { selectedTrackForPlaylist = it }
+                                onAddToPlaylist = { selectedTrackForPlaylist = it },
+                                onDeleteTrack = if (track.id.startsWith("local_") || track.id.startsWith("custom_")) {
+                                    { trackToDelete -> onDeleteCustomTrack?.invoke(trackToDelete.id) }
+                                } else null
                             )
                         }
                     }
@@ -252,8 +291,62 @@ fun LibraryScreen(
                 }
             }
 
-            // TAB 1: PLAYLIST SAYA
+            // TAB 1: LAGU SAYA (MY SONGS)
             1 -> {
+                if (customTracks.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${customTracks.size} ${AppStrings.get("songs_count")}",
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(
+                            onClick = { onTrackSelect(customTracks[0], customTracks) },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        ) {
+                            Icon(Icons.Filled.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp), tint = Color.Black)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(AppStrings.get("play_all"), fontSize = 12.sp, color = Color.Black, fontWeight = FontWeight.Bold)
+                        }
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(bottom = 100.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(customTracks, key = { it.id }) { track ->
+                            TrackItem(
+                                track = track,
+                                isCurrentTrack = currentTrack?.id == track.id,
+                                isPlaying = isPlaying && currentTrack?.id == track.id,
+                                isLiked = likedTracks.any { it.id == track.id },
+                                onClick = { onTrackSelect(track, customTracks) },
+                                onLikeToggle = { onLikeToggle(track) },
+                                onAddToPlaylist = { selectedTrackForPlaylist = it },
+                                onDeleteTrack = { trackToDelete -> onDeleteCustomTrack?.invoke(trackToDelete.id) }
+                            )
+                        }
+                    }
+                } else {
+                    EmptyStateView(
+                        icon = Icons.Filled.MusicNote,
+                        message = AppStrings.get("empty_my_songs"),
+                        actionButtonText = "+ Tambah Lagu Saya",
+                        onActionClick = { showAddTrackDialog = true }
+                    )
+                }
+            }
+
+            // TAB 2: PLAYLIST SAYA
+            2 -> {
                 if (customPlaylists.isNotEmpty()) {
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -284,8 +377,8 @@ fun LibraryScreen(
                 }
             }
 
-            // TAB 2: RIWAYAT PUTAR
-            2 -> {
+            // TAB 3: RIWAYAT PUTAR
+            3 -> {
                 if (history.isNotEmpty()) {
                     val likedTrackIds = remember(likedTracks) { likedTracks.map { it.id }.toSet() }
 

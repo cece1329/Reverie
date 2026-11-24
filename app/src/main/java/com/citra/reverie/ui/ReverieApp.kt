@@ -2,9 +2,17 @@ package com.citra.reverie.ui
 
 import android.content.res.Configuration
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,6 +79,7 @@ fun ReverieApp(
     val history by playerManager.history.collectAsState()
     val queue by playerManager.queue.collectAsState()
     val customPlaylists by playerManager.customPlaylists.collectAsState()
+    val customTracks by playerManager.customTracks.collectAsState()
     val userProfile by playerManager.userProfile.collectAsState()
 
     val configuration = LocalConfiguration.current
@@ -121,6 +130,7 @@ fun ReverieApp(
                                 currentTrack = currentTrack,
                                 isPlaying = isPlaying,
                                 likedTracks = likedTracks,
+                                customTracks = customTracks,
                                 history = history,
                                 customPlaylists = customPlaylists,
                                 userProfile = userProfile,
@@ -143,6 +153,9 @@ fun ReverieApp(
                                 },
                                 onAddLocalTrack = { t, a, c, u ->
                                     playerManager.addLocalAudioTrack(t, a, c, u)
+                                },
+                                onDeleteCustomTrack = { trackId ->
+                                    playerManager.deleteCustomTrack(trackId)
                                 },
                                 onClearHistory = {
                                     playerManager.clearHistory()
@@ -205,6 +218,7 @@ fun ReverieApp(
                                 currentTrack = currentTrack,
                                 isPlaying = isPlaying,
                                 likedTracks = likedTracks,
+                                customTracks = customTracks,
                                 history = history,
                                 customPlaylists = customPlaylists,
                                 userProfile = userProfile,
@@ -227,6 +241,9 @@ fun ReverieApp(
                                 },
                                 onAddLocalTrack = { t, a, c, u ->
                                     playerManager.addLocalAudioTrack(t, a, c, u)
+                                },
+                                onDeleteCustomTrack = { trackId ->
+                                    playerManager.deleteCustomTrack(trackId)
                                 },
                                 onClearHistory = {
                                     playerManager.clearHistory()
@@ -283,6 +300,7 @@ private fun MainContentScreen(
     currentTrack: Track?,
     isPlaying: Boolean,
     likedTracks: List<Track>,
+    customTracks: List<Track> = emptyList(),
     history: List<Track>,
     customPlaylists: List<Playlist>,
     userProfile: UserProfile,
@@ -294,6 +312,7 @@ private fun MainContentScreen(
     onAddTrackToPlaylist: (playlistId: String, track: Track) -> Unit,
     onAddCustomTrack: (title: String, artist: String, coverUrl: String, songUrl: String) -> Unit,
     onAddLocalTrack: (title: String, artist: String, coverUrl: String, fileUri: String) -> Unit,
+    onDeleteCustomTrack: ((String) -> Unit)? = null,
     onClearHistory: () -> Unit,
     onUpdateProfile: (username: String, email: String) -> Unit,
     onLogin: (String, String) -> Unit,
@@ -302,67 +321,88 @@ private fun MainContentScreen(
     onToggleTheme: () -> Unit,
     onToggleLanguage: () -> Unit
 ) {
-    when (currentTab) {
-        ReverieTab.HOME -> {
-            HomeScreen(
-                currentTrack = currentTrack,
-                isPlaying = isPlaying,
-                likedTracks = likedTracks,
-                customPlaylists = customPlaylists,
-                onTrackSelect = onTrackSelect,
-                onLikeToggle = onLikeToggle,
-                onAddTrackToPlaylist = onAddTrackToPlaylist,
-                onAddCustomTrack = onAddCustomTrack,
-                onAddLocalTrack = onAddLocalTrack,
-                onToggleTheme = onToggleTheme,
-                onToggleLanguage = onToggleLanguage,
-                isDarkMode = isDarkMode
-            )
-        }
+    AnimatedContent(
+        targetState = currentTab,
+        transitionSpec = {
+            val isForward = targetState.ordinal > initialState.ordinal
+            val enterAnim = if (isForward) {
+                slideInHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { width -> width / 4 } + fadeIn(animationSpec = tween(300))
+            } else {
+                slideInHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { width -> -width / 4 } + fadeIn(animationSpec = tween(300))
+            }
+            val exitAnim = if (isForward) {
+                slideOutHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { width -> -width / 4 } + fadeOut(animationSpec = tween(200))
+            } else {
+                slideOutHorizontally(animationSpec = tween(300, easing = FastOutSlowInEasing)) { width -> width / 4 } + fadeOut(animationSpec = tween(200))
+            }
+            enterAnim togetherWith exitAnim
+        },
+        label = "NavbarTabAnimation"
+    ) { targetTab ->
+        when (targetTab) {
+            ReverieTab.HOME -> {
+                HomeScreen(
+                    currentTrack = currentTrack,
+                    isPlaying = isPlaying,
+                    likedTracks = likedTracks,
+                    customPlaylists = customPlaylists,
+                    onTrackSelect = onTrackSelect,
+                    onLikeToggle = onLikeToggle,
+                    onAddTrackToPlaylist = onAddTrackToPlaylist,
+                    onAddCustomTrack = onAddCustomTrack,
+                    onAddLocalTrack = onAddLocalTrack,
+                    onToggleTheme = onToggleTheme,
+                    onToggleLanguage = onToggleLanguage,
+                    isDarkMode = isDarkMode
+                )
+            }
 
-        ReverieTab.SEARCH -> {
-            MusicSearchScreen(
-                currentTrack = currentTrack,
-                isPlaying = isPlaying,
-                likedTracks = likedTracks,
-                customPlaylists = customPlaylists,
-                onTrackSelect = onTrackSelect,
-                onLikeToggle = onLikeToggle,
-                onAddTrackToPlaylist = onAddTrackToPlaylist
-            )
-        }
+            ReverieTab.SEARCH -> {
+                MusicSearchScreen(
+                    currentTrack = currentTrack,
+                    isPlaying = isPlaying,
+                    likedTracks = likedTracks,
+                    customPlaylists = customPlaylists,
+                    onTrackSelect = onTrackSelect,
+                    onLikeToggle = onLikeToggle,
+                    onAddTrackToPlaylist = onAddTrackToPlaylist
+                )
+            }
 
-        ReverieTab.LIBRARY -> {
-            LibraryScreen(
-                currentTrack = currentTrack,
-                isPlaying = isPlaying,
-                likedTracks = likedTracks,
-                history = history,
-                customPlaylists = customPlaylists,
-                onCreatePlaylist = onCreatePlaylist,
-                onDeletePlaylist = onDeletePlaylist,
-                onAddTrackToPlaylist = onAddTrackToPlaylist,
-                onAddCustomTrack = onAddCustomTrack,
-                onAddLocalTrack = onAddLocalTrack,
-                onClearHistory = onClearHistory,
-                onTrackSelect = onTrackSelect,
-                onLikeToggle = onLikeToggle
-            )
-        }
+            ReverieTab.LIBRARY -> {
+                LibraryScreen(
+                    currentTrack = currentTrack,
+                    isPlaying = isPlaying,
+                    likedTracks = likedTracks,
+                    customTracks = customTracks,
+                    history = history,
+                    customPlaylists = customPlaylists,
+                    onCreatePlaylist = onCreatePlaylist,
+                    onDeletePlaylist = onDeletePlaylist,
+                    onAddTrackToPlaylist = onAddTrackToPlaylist,
+                    onAddCustomTrack = onAddCustomTrack,
+                    onAddLocalTrack = onAddLocalTrack,
+                    onDeleteCustomTrack = onDeleteCustomTrack,
+                    onClearHistory = onClearHistory,
+                    onTrackSelect = onTrackSelect,
+                    onLikeToggle = onLikeToggle
+                )
+            }
 
-        ReverieTab.SETTINGS -> {
-            ProfileScreen(
-                userProfile = userProfile,
-                playlistsCount = customPlaylists.size,
-                likedCount = likedTracks.size,
-                onUpdateProfile = onUpdateProfile,
-                onLogin = onLogin,
-                onRegister = onRegister,
-                onLogout = onLogout,
-                onToggleTheme = onToggleTheme,
-                isDarkMode = isDarkMode,
-                onToggleLanguage = onToggleLanguage
-            )
+            ReverieTab.SETTINGS -> {
+                ProfileScreen(
+                    userProfile = userProfile,
+                    playlistsCount = customPlaylists.size,
+                    likedCount = likedTracks.size,
+                    onUpdateProfile = onUpdateProfile,
+                    onLogin = onLogin,
+                    onRegister = onRegister,
+                    onLogout = onLogout,
+                    onToggleTheme = onToggleTheme,
+                    isDarkMode = isDarkMode,
+                    onToggleLanguage = onToggleLanguage
+                )
+            }
         }
     }
 }

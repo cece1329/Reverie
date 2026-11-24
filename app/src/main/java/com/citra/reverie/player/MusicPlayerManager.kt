@@ -1,22 +1,38 @@
 package com.citra.reverie.player
 
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.annotation.OptIn
+import androidx.core.content.ContextCompat
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.ForwardingPlayer
+import androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT
+import androidx.media3.common.Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM
+import androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS
+import androidx.media3.common.Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.session.MediaSession
+import com.citra.reverie.MainActivity
 import com.citra.reverie.data.AudiusApiService
 import com.citra.reverie.data.NetworkClient
 import com.citra.reverie.model.Playlist
 import com.citra.reverie.model.Track
 import com.citra.reverie.service.MusicService
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import java.io.File
+import java.io.FileOutputStream
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -48,6 +64,21 @@ class MusicPlayerManager(context: Context) {
     private val audiusService = AudiusApiService()
 
     private var exoPlayer: ExoPlayer? = null
+    private var mediaSession: MediaSession? = null
+
+    fun getMediaSession(): MediaSession? {
+        if (mediaSession == null) {
+            initExoPlayer()
+        }
+        return mediaSession
+    }
+
+    fun getExoPlayer(): ExoPlayer? {
+        if (exoPlayer == null) {
+            initExoPlayer()
+        }
+        return exoPlayer
+    }
 
     private var fallbackAttempts = 0
     private val maxFallbackAttempts = 3
@@ -91,6 +122,12 @@ class MusicPlayerManager(context: Context) {
     private val _customPlaylists = MutableStateFlow<List<Playlist>>(emptyList())
     val customPlaylists: StateFlow<List<Playlist>> = _customPlaylists.asStateFlow()
 
+    private val _customTracks = MutableStateFlow<List<Track>>(emptyList())
+    val customTracks: StateFlow<List<Track>> = _customTracks.asStateFlow()
+
+    private val prefs = applicationContext.getSharedPreferences("reverie_prefs", Context.MODE_PRIVATE)
+    private val gson = Gson()
+
     private val scope = CoroutineScope(Dispatchers.Main)
     private var progressJob: Job? = null
     private var resolveJob: Job? = null
@@ -110,7 +147,89 @@ class MusicPlayerManager(context: Context) {
     init {
         initExoPlayer()
         _currentTrack.value = null
+        loadSavedState()
         loadPopularAudiusMusic()
+    }
+
+    private fun loadSavedState() {
+        val isLoggedIn = prefs.getBoolean("is_logged_in", false)
+        val username = prefs.getString("username", "Citra Maharani") ?: "Citra Maharani"
+        val email = prefs.getString("email", "citra@reverie.app") ?: "citra@reverie.app"
+        _userProfile.value = UserProfile(
+            username = username,
+            email = email,
+            isPremium = true,
+            isLoggedIn = isLoggedIn
+        )
+
+        val savedPlaylistsJson = prefs.getString("custom_playlists", null)
+        if (!savedPlaylistsJson.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<Playlist>>() {}.type
+                val list: List<Playlist>? = gson.fromJson(savedPlaylistsJson, type)
+                if (list != null) _customPlaylists.value = list
+            } catch (e: Exception) {
+                android.util.Log.e("MusicPlayerManager", "Error loading saved playlists: ${e.message}")
+            }
+        }
+
+        val savedLikedJson = prefs.getString("liked_tracks", null)
+        if (!savedLikedJson.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<Track>>() {}.type
+                val list: List<Track>? = gson.fromJson(savedLikedJson, type)
+                if (list != null) _likedTracks.value = list
+            } catch (e: Exception) {
+                android.util.Log.e("MusicPlayerManager", "Error loading saved liked tracks: ${e.message}")
+            }
+        }
+
+        val savedCustomTracksJson = prefs.getString("custom_tracks", null)
+        if (!savedCustomTracksJson.isNullOrBlank()) {
+            try {
+                val type = object : TypeToken<List<Track>>() {}.type
+                val list: List<Track>? = gson.fromJson(savedCustomTracksJson, type)
+                if (list != null) _customTracks.value = list
+            } catch (e: Exception) {
+                android.util.Log.e("MusicPlayerManager", "Error loading saved custom tracks: ${e.message}")
+            }
+        }
+    }
+
+    private fun saveUserProfileState() {
+        val profile = _userProfile.value
+        prefs.edit()
+            .putBoolean("is_logged_in", profile.isLoggedIn)
+            .putString("username", profile.username)
+            .putString("email", profile.email)
+            .apply()
+    }
+
+    private fun savePlaylistsState() {
+        try {
+            val json = gson.toJson(_customPlaylists.value)
+            prefs.edit().putString("custom_playlists", json).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("MusicPlayerManager", "Error saving playlists: ${e.message}")
+        }
+    }
+
+    private fun saveLikedTracksState() {
+        try {
+            val json = gson.toJson(_likedTracks.value)
+            prefs.edit().putString("liked_tracks", json).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("MusicPlayerManager", "Error saving liked tracks: ${e.message}")
+        }
+    }
+
+    private fun saveCustomTracksState() {
+        try {
+            val json = gson.toJson(_customTracks.value)
+            prefs.edit().putString("custom_tracks", json).apply()
+        } catch (e: Exception) {
+            android.util.Log.e("MusicPlayerManager", "Error saving custom tracks: ${e.message}")
+        }
     }
 
     private fun loadPopularAudiusMusic() {
@@ -128,78 +247,136 @@ class MusicPlayerManager(context: Context) {
 
     @OptIn(UnstableApi::class)
     private fun initExoPlayer() {
-        if (exoPlayer != null) return
+        if (exoPlayer == null) {
+            val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+            val okHttpDataSourceFactory = OkHttpDataSource.Factory(NetworkClient.okHttpClient)
+                .setUserAgent(userAgent)
 
-        val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-        val okHttpDataSourceFactory = OkHttpDataSource.Factory(NetworkClient.okHttpClient)
-            .setUserAgent(userAgent)
-
-        val mediaSourceFactory = DefaultMediaSourceFactory(applicationContext)
-            .setDataSourceFactory(okHttpDataSourceFactory)
-
-        val player = ExoPlayer.Builder(applicationContext)
-            .setMediaSourceFactory(mediaSourceFactory)
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                    .setUsage(C.USAGE_MEDIA)
-                    .build(),
-                true
+            val defaultDataSourceFactory = DefaultDataSource.Factory(
+                applicationContext,
+                okHttpDataSourceFactory
             )
-            .setWakeMode(C.WAKE_MODE_NETWORK)
-            .setHandleAudioBecomingNoisy(true)
-            .build()
 
-        player.addListener(object : Player.Listener {
-            override fun onIsPlayingChanged(playing: Boolean) {
-                _isPlaying.value = playing
-                if (playing) {
+            val mediaSourceFactory = DefaultMediaSourceFactory(defaultDataSourceFactory)
+
+            val player = ExoPlayer.Builder(applicationContext)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+                        .setUsage(C.USAGE_MEDIA)
+                        .build(),
+                    true
+                )
+                .setWakeMode(C.WAKE_MODE_NETWORK)
+                .setHandleAudioBecomingNoisy(true)
+                .build()
+
+            player.addListener(object : Player.Listener {
+                override fun onIsPlayingChanged(playing: Boolean) {
+                    _isPlaying.value = playing
+                    if (playing) {
+                        _isBuffering.value = false
+                        startProgressTracker()
+                    } else {
+                        stopProgressTracker()
+                    }
+                }
+
+                override fun onPlaybackStateChanged(state: Int) {
+                    when (state) {
+                        Player.STATE_BUFFERING -> _isBuffering.value = true
+                        Player.STATE_READY -> {
+                            _isBuffering.value = false
+                            val d = player.duration
+                            if (d > 0) _durationMs.value = d
+                        }
+                        Player.STATE_ENDED -> {
+                            _isBuffering.value = false
+                            _isPlaying.value = false
+                            handleTrackEnded()
+                        }
+                        Player.STATE_IDLE -> _isBuffering.value = false
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    android.util.Log.e("MusicPlayer", "ExoPlayer Error code: ${error.errorCodeName}, Message: ${error.message}", error)
                     _isBuffering.value = false
-                    startProgressTracker()
-                } else {
-                    stopProgressTracker()
-                }
-            }
+                    _isPlaying.value = false
 
-            override fun onPlaybackStateChanged(state: Int) {
-                when (state) {
-                    Player.STATE_BUFFERING -> _isBuffering.value = true
-                    Player.STATE_READY -> {
-                        _isBuffering.value = false
-                        val d = player.duration
-                        if (d > 0) _durationMs.value = d
+                    if (fallbackAttempts >= maxFallbackAttempts) {
+                        scope.launch {
+                            delay(1000L)
+                            nextTrack()
+                        }
+                        return
                     }
-                    Player.STATE_ENDED -> {
-                        _isBuffering.value = false
-                        _isPlaying.value = false
-                        handleTrackEnded()
-                    }
-                    Player.STATE_IDLE -> _isBuffering.value = false
-                }
-            }
+                    fallbackAttempts++
 
-            override fun onPlayerError(error: PlaybackException) {
-                android.util.Log.e("MusicPlayer", "ExoPlayer Error code: ${error.errorCodeName}, Message: ${error.message}", error)
-                _isBuffering.value = false
-                _isPlaying.value = false
-
-                if (fallbackAttempts >= maxFallbackAttempts) {
+                    val current = _currentTrack.value ?: return
                     scope.launch {
-                        delay(1000L)
-                        nextTrack()
+                        delay(600L)
+                        resolveAndPlayExoPlayer(current)
                     }
-                    return
                 }
-                fallbackAttempts++
+            })
+            exoPlayer = player
+        }
 
-                val current = _currentTrack.value ?: return
-                scope.launch {
-                    delay(600L)
-                    resolveAndPlayExoPlayer(current)
+        val currentPlayer = exoPlayer ?: return
+
+        if (mediaSession == null) {
+            val sessionActivityIntent = Intent(applicationContext, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val pendingIntent = PendingIntent.getActivity(
+                applicationContext,
+                0,
+                sessionActivityIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
+
+            val forwardingPlayer = object : ForwardingPlayer(currentPlayer) {
+                override fun getAvailableCommands(): Player.Commands {
+                    return super.getAvailableCommands().buildUpon()
+                        .add(COMMAND_SEEK_TO_NEXT)
+                        .add(COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
+                        .add(COMMAND_SEEK_TO_PREVIOUS)
+                        .add(COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
+                        .build()
+                }
+
+                override fun isCommandAvailable(command: Int): Boolean {
+                    return command == COMMAND_SEEK_TO_NEXT ||
+                            command == COMMAND_SEEK_TO_NEXT_MEDIA_ITEM ||
+                            command == COMMAND_SEEK_TO_PREVIOUS ||
+                            command == COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM ||
+                            super.isCommandAvailable(command)
+                }
+
+                override fun seekToNext() {
+                    scope.launch { nextTrack() }
+                }
+
+                override fun seekToNextMediaItem() {
+                    scope.launch { nextTrack() }
+                }
+
+                override fun seekToPrevious() {
+                    scope.launch { previousTrack() }
+                }
+
+                override fun seekToPreviousMediaItem() {
+                    scope.launch { previousTrack() }
                 }
             }
-        })
-        exoPlayer = player
+
+            mediaSession = MediaSession.Builder(applicationContext, forwardingPlayer)
+                .setSessionActivity(pendingIntent)
+                .setId("ReverieMediaSession")
+                .build()
+        }
     }
 
     private fun startProgressTracker() {
@@ -255,6 +432,7 @@ class MusicPlayerManager(context: Context) {
         resolveJob = scope.launch(Dispatchers.IO) {
             var directAudioUrl: String? = null
             var resolvedDurationMs: Long = if (track.durationMs > 0) track.durationMs else 0L
+            var artworkBytes: ByteArray? = null
 
             try {
                 // 1. Jika audioUrl dari track berupa URL HTTP/Content URI direct, langsung gunakan
@@ -274,6 +452,23 @@ class MusicPlayerManager(context: Context) {
                         directAudioUrl = trending.random().audioUrl
                     }
                 }
+
+                // Unduh cover artwork bytes untuk tampilan notifikasi instan berkualitas tinggi
+                if (track.coverUrl.isNotBlank() && track.coverUrl.startsWith("http")) {
+                    try {
+                        val request = okhttp3.Request.Builder().url(track.coverUrl).build()
+                        NetworkClient.okHttpClient.newCall(request).execute().use { response ->
+                            if (response.isSuccessful) {
+                                val bytes = response.body?.bytes()
+                                if (bytes != null && bytes.size < 800 * 1024) {
+                                    artworkBytes = bytes
+                                }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.w("MusicPlayerManager", "Cover download skipped: ${e.message}")
+                    }
+                }
             } catch (e: Exception) {
                 android.util.Log.e("MusicPlayerManager", "resolveAndPlayExoPlayer error: ${e.message}")
             }
@@ -283,7 +478,7 @@ class MusicPlayerManager(context: Context) {
 
                 if (!directAudioUrl.isNullOrBlank()) {
                     android.util.Log.d("MusicPlayerManager", "Playing stream via ExoPlayer: $directAudioUrl")
-                    playWithExoPlayer(directAudioUrl, resolvedDurationMs)
+                    playWithExoPlayer(directAudioUrl, resolvedDurationMs, track, artworkBytes)
                 } else {
                     android.util.Log.e("MusicPlayerManager", "Failed to resolve direct audio stream for ${track.title}")
                     _isBuffering.value = false
@@ -293,7 +488,12 @@ class MusicPlayerManager(context: Context) {
         }
     }
 
-    private fun playWithExoPlayer(audioUrl: String, resolvedDurationMs: Long = 0L) {
+    private fun playWithExoPlayer(
+        audioUrl: String,
+        resolvedDurationMs: Long = 0L,
+        track: Track? = _currentTrack.value,
+        artworkBytes: ByteArray? = null
+    ) {
         initExoPlayer()
         try {
             exoPlayer?.stop()
@@ -305,7 +505,27 @@ class MusicPlayerManager(context: Context) {
             _isBuffering.value = true
             resetBufferingTimeout()
 
-            val mediaItem = MediaItem.fromUri(audioUrl)
+            val current = track ?: _currentTrack.value
+            val metadataBuilder = MediaMetadata.Builder()
+                .setTitle(current?.title ?: "Reverie Music")
+                .setArtist(current?.artist ?: "Unknown Artist")
+                .setAlbumTitle(current?.album ?: "Reverie")
+
+            if (!current?.coverUrl.isNullOrBlank()) {
+                try {
+                    metadataBuilder.setArtworkUri(Uri.parse(current.coverUrl))
+                } catch (_: Exception) {}
+            }
+            if (artworkBytes != null) {
+                metadataBuilder.setArtworkData(artworkBytes, MediaMetadata.PICTURE_TYPE_FRONT_COVER)
+            }
+
+            val mediaItem = MediaItem.Builder()
+                .setUri(audioUrl)
+                .setMediaId(current?.id ?: "reverie_track_${System.currentTimeMillis()}")
+                .setMediaMetadata(metadataBuilder.build())
+                .build()
+
             exoPlayer?.setMediaItem(mediaItem)
             exoPlayer?.prepare()
             exoPlayer?.playWhenReady = true
@@ -313,8 +533,14 @@ class MusicPlayerManager(context: Context) {
 
             try {
                 val serviceIntent = Intent(applicationContext, MusicService::class.java)
-                applicationContext.startService(serviceIntent)
-            } catch (_: Exception) {}
+                ContextCompat.startForegroundService(applicationContext, serviceIntent)
+            } catch (e: Exception) {
+                android.util.Log.w("MusicPlayerManager", "startForegroundService exception: ${e.message}")
+                try {
+                    val serviceIntent = Intent(applicationContext, MusicService::class.java)
+                    applicationContext.startService(serviceIntent)
+                } catch (_: Exception) {}
+            }
         } catch (e: Exception) {
             android.util.Log.e("MusicPlayerManager", "Error playing $audioUrl", e)
             _isPlaying.value = false
@@ -342,6 +568,10 @@ class MusicPlayerManager(context: Context) {
             } else {
                 player.play()
                 _isPlaying.value = true
+                try {
+                    val serviceIntent = Intent(applicationContext, MusicService::class.java)
+                    ContextCompat.startForegroundService(applicationContext, serviceIntent)
+                } catch (_: Exception) {}
             }
         }
     }
@@ -404,6 +634,7 @@ class MusicPlayerManager(context: Context) {
             currentList.add(0, track)
         }
         _likedTracks.value = currentList
+        saveLikedTracksState()
     }
 
     fun addCustomTrack(title: String, artist: String, coverUrl: String, songUrl: String) {
@@ -421,28 +652,105 @@ class MusicPlayerManager(context: Context) {
             durationMs = 210000L
         )
 
+        _customTracks.value = listOf(newTrack) + _customTracks.value
         _queue.value = listOf(newTrack) + _queue.value
-        _likedTracks.value = listOf(newTrack) + _likedTracks.value
-        playTrack(newTrack)
+        saveCustomTracksState()
+        playTrack(newTrack, _customTracks.value)
     }
 
     fun addLocalAudioTrack(title: String, artist: String, coverUrl: String, fileUri: String) {
-        val cover = if (coverUrl.isNotBlank()) coverUrl
-        else "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500"
+        scope.launch(Dispatchers.IO) {
+            val uri = Uri.parse(fileUri)
+            val localAudioPath = copyLocalAudioFile(applicationContext, uri)
+            val measuredDuration = getAudioDurationMs(applicationContext, localAudioPath)
 
-        val newTrack = Track(
-            id = "local_${System.currentTimeMillis()}",
-            title = title.ifBlank { "Lagu Lokal" },
-            artist = artist.ifBlank { "Perangkat Saya" },
-            album = "File Perangkat",
-            coverUrl = cover,
-            audioUrl = fileUri,
-            durationMs = 210000L
-        )
+            val cover = if (coverUrl.isNotBlank()) coverUrl
+            else "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500"
 
-        _queue.value = listOf(newTrack) + _queue.value
-        _likedTracks.value = listOf(newTrack) + _likedTracks.value
-        playTrack(newTrack)
+            val newTrack = Track(
+                id = "local_${System.currentTimeMillis()}",
+                title = title.ifBlank { "Lagu Lokal" },
+                artist = artist.ifBlank { "Perangkat Saya" },
+                album = "Lagu Saya",
+                coverUrl = cover,
+                audioUrl = localAudioPath,
+                durationMs = measuredDuration
+            )
+
+            withContext(Dispatchers.Main) {
+                _customTracks.value = listOf(newTrack) + _customTracks.value
+                _queue.value = listOf(newTrack) + _queue.value
+                saveCustomTracksState()
+                playTrack(newTrack, _customTracks.value)
+            }
+        }
+    }
+
+    fun deleteCustomTrack(trackId: String) {
+        val track = _customTracks.value.find { it.id == trackId }
+        _customTracks.value = _customTracks.value.filterNot { it.id == trackId }
+        saveCustomTracksState()
+
+        _likedTracks.value = _likedTracks.value.filterNot { it.id == trackId }
+        saveLikedTracksState()
+
+        if (_currentTrack.value?.id == trackId) {
+            nextTrack()
+        }
+
+        track?.let { t ->
+            if (t.audioUrl.startsWith("file://")) {
+                try {
+                    val fileUri = Uri.parse(t.audioUrl)
+                    fileUri.path?.let { path ->
+                        val file = File(path)
+                        if (file.exists()) file.delete()
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("MusicPlayerManager", "Failed to delete local audio file: ${e.message}")
+                }
+            }
+        }
+    }
+
+    private fun copyLocalAudioFile(context: Context, sourceUri: Uri): String {
+        return try {
+            val dir = File(context.filesDir, "custom_music")
+            if (!dir.exists()) dir.mkdirs()
+            val destFile = File(dir, "track_${System.currentTimeMillis()}.mp3")
+
+            context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                FileOutputStream(destFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            if (destFile.exists() && destFile.length() > 0) {
+                Uri.fromFile(destFile).toString()
+            } else {
+                sourceUri.toString()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("MusicPlayerManager", "Failed to copy local audio file: ${e.message}")
+            sourceUri.toString()
+        }
+    }
+
+    private fun getAudioDurationMs(context: Context, audioUriStr: String): Long {
+        return try {
+            val retriever = android.media.MediaMetadataRetriever()
+            val uri = Uri.parse(audioUriStr)
+            if (audioUriStr.startsWith("content://") || audioUriStr.startsWith("file://")) {
+                retriever.setDataSource(context, uri)
+            } else {
+                retriever.setDataSource(audioUriStr, HashMap())
+            }
+            val durationStr = retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+            retriever.release()
+            durationStr?.toLongOrNull() ?: 180000L
+        } catch (e: Exception) {
+            android.util.Log.w("MusicPlayerManager", "Failed to retrieve duration: ${e.message}")
+            180000L
+        }
     }
 
     fun createPlaylist(name: String, description: String, coverUrl: String = "") {
@@ -458,6 +766,7 @@ class MusicPlayerManager(context: Context) {
             tracks = emptyList()
         )
         _customPlaylists.value = _customPlaylists.value + newPl
+        savePlaylistsState()
     }
 
     fun editPlaylist(playlistId: String, newName: String, newDesc: String, newCoverUrl: String) {
@@ -470,6 +779,7 @@ class MusicPlayerManager(context: Context) {
                 )
             } else pl
         }
+        savePlaylistsState()
     }
 
     fun addTrackToPlaylist(playlistId: String, track: Track) {
@@ -479,10 +789,12 @@ class MusicPlayerManager(context: Context) {
                 pl.copy(tracks = updated, trackCount = updated.size)
             } else pl
         }
+        savePlaylistsState()
     }
 
     fun deletePlaylist(playlistId: String) {
         _customPlaylists.value = _customPlaylists.value.filterNot { it.id == playlistId }
+        savePlaylistsState()
     }
 
     fun clearHistory() {
@@ -494,26 +806,34 @@ class MusicPlayerManager(context: Context) {
             username = username.ifBlank { _userProfile.value.username },
             email = email.ifBlank { _userProfile.value.email }
         )
+        saveUserProfileState()
     }
 
     fun login(username: String, email: String) {
         _userProfile.value = UserProfile(username = username, email = email, isLoggedIn = true)
-        _customPlaylists.value = emptyList()
-        _likedTracks.value = emptyList()
+        saveUserProfileState()
     }
 
     fun logout() {
         _userProfile.value = UserProfile(username = "Tamu", email = "", isLoggedIn = false)
-        _customPlaylists.value = emptyList()
-        _likedTracks.value = emptyList()
         _currentTrack.value = null
         exoPlayer?.stop()
+        exoPlayer?.clearMediaItems()
         _isPlaying.value = false
+        saveUserProfileState()
+    }
+
+    fun releaseMediaSession() {
+        mediaSession?.run {
+            release()
+            mediaSession = null
+        }
     }
 
     fun release() {
         stopProgressTracker()
         resolveJob?.cancel()
+        releaseMediaSession()
         exoPlayer?.release()
         exoPlayer = null
     }
